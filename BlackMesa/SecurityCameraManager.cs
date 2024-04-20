@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Rendering;
@@ -101,7 +101,7 @@ namespace BlackMesa
                     if (!handheldTVCamera.isBeingUsed)
                         continue;
 
-                    if (securityFeedTerminal.isVisible || handheldTVCamera.mainObjectRenderer.isVisible)
+                    if (handheldTVTerminal.isVisible || handheldTVCamera.mainObjectRenderer.isVisible)
                     {
                         lastRenderedCameras.Add(handheldTVCamera.Camera);
                     }
