@@ -91,7 +91,7 @@ namespace BlackMesa
             lastRenderedCameras.Clear();
 
             int i;
-            for (i = 1; i <= nightVisionCameras.Count && lastRenderedCameras.Count < camerasToRenderPerFrame; i++)
+            for (i = 1; i <= nightVisionCameras.Count; i++)
             {
                 var checkIndex = currentNightVisionCameraIndex + i;
                 var nightVisionCamera = nightVisionCameras[checkIndex % nightVisionCameras.Count];
@@ -110,6 +110,9 @@ namespace BlackMesa
                 {
                     lastRenderedCameras.Add(nightVisionCamera.Camera);
                 }
+
+                if (lastRenderedCameras.Count >= camerasToRenderPerFrame)
+                    break;
             }
 
             foreach (var camera in lastRenderedCameras)
