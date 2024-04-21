@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Rendering;
@@ -10,15 +10,11 @@ namespace BlackMesa
 {
     internal class SecurityCameraManager : MonoBehaviour
     {
-        internal List<INightVisionCamera> nightVisionCameras = new List<INightVisionCamera>();
-        int currentNightVisionCameraIndex = 0;
+        internal List<SecurityCamera> securityCameras = new List<SecurityCamera>();
+        internal List<HandheldTVCamera> handheldTVCameras = new List<HandheldTVCamera>();
 
         internal HashSet<Camera> nightVisionCameraSet = new HashSet<Camera>();
         internal List<Light> nightVisionLights = new List<Light>();
-
-        internal List<Camera> lastRenderedCameras = new List<Camera>();
-
-        private static int camerasToRenderPerFrame = 1;
 
         internal static SecurityCameraManager Instance;
 
@@ -26,17 +22,23 @@ namespace BlackMesa
         public MeshRenderer handheldTVTerminal;
         [SerializeField]
         public List<int> handheldTVMaterialIndices;
+        [SerializeField]
+        public List<Bounds> handheldTVTerminalScreenBounds;
         int currentHandheldTVIndex;
 
         [SerializeField]
         public MeshRenderer securityFeedTerminal;
         [SerializeField]
         public List<int> securityCameraMaterialIndices;
+        [SerializeField]
+        public List<Bounds> securityFeedTerminalScreenBounds;
         int currentSecurityCameraIndex;
+
+        private Camera[] allCameras;
+        private readonly Plane[] frustumPlanes = new Plane[6];
 
         private void AddNightVisionCamera(INightVisionCamera nightVisionCamera)
         {
-            nightVisionCameras.Add(nightVisionCamera);
             nightVisionCameraSet.Add(nightVisionCamera.Camera);
             nightVisionLights.Add(nightVisionCamera.NightVisionLight);
         }
@@ -53,6 +55,7 @@ namespace BlackMesa
             currentSecurityCameraIndex++;
 
             Debug.Log("Added security camera to nightvision camera list");
+            securityCameras.Add(securityCamera);
             AddNightVisionCamera(securityCamera);
         }
 
@@ -71,6 +74,7 @@ namespace BlackMesa
             currentHandheldTVIndex++;
 
             Debug.Log("Added handheld TV to nightvision camera list");
+            handheldTVCameras.Add(handheldTVCamera);
             AddNightVisionCamera(handheldTVCamera);
         }
 
@@ -85,52 +89,53 @@ namespace BlackMesa
             RenderPipelineManager.beginCameraRendering += UpdateVisibleLights;
         }
 
+        public bool IsBoundingBoxVisibleOnOtherCameras(Bounds bounds)
+        {
+            if (allCameras.Length != Camera.allCamerasCount)
+                allCameras = new Camera[Camera.allCamerasCount];
+            Camera.GetAllCameras(allCameras);
+
+            foreach (var camera in allCameras)
+            {
+                // Skip if the camera can't see the default layer.
+                if ((camera.cullingMask & 1) == 0)
+                    continue;
+                if (camera is null || nightVisionCameraSet.Contains(camera))
+                    continue;
+
+                GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
+                if (GeometryUtility.TestPlanesAABB(frustumPlanes, bounds))
+                    return true;
+            }
+
+            return false;
+        }
+
         public void Update()
         {
-            if (nightVisionCameras.Count == 0)
+            for (var i = 0; i < securityCameras.Count; i++)
             {
-                return;
+                var securityCamera = securityCameras[i];
+                bool enabled = securityFeedTerminal.isVisible;
+
+                if (enabled)
+                    enabled = IsBoundingBoxVisibleOnOtherCameras(securityFeedTerminalScreenBounds[i]);
+
+                securityCamera.Camera.enabled = enabled;
             }
 
-            foreach (var cameraToDisable in lastRenderedCameras)
+            for (var i = 0; i < handheldTVCameras.Count; i++)
             {
-                cameraToDisable.enabled = false;
+                var handheldTVCamera = handheldTVCameras[i];
+                var enabled = handheldTVCamera.isBeingUsed;
+
+                if (enabled)
+                    enabled = handheldTVTerminal.isVisible || handheldTVCamera.mainObjectRenderer.isVisible;
+                if (enabled)
+                    enabled = IsBoundingBoxVisibleOnOtherCameras(handheldTVTerminalScreenBounds[i]);
+
+                handheldTVCamera.Camera.enabled = enabled;
             }
-
-            lastRenderedCameras.Clear();
-
-            int i;
-            for (i = 1; i <= nightVisionCameras.Count; i++)
-            {
-                var checkIndex = currentNightVisionCameraIndex + i;
-                var nightVisionCamera = nightVisionCameras[checkIndex % nightVisionCameras.Count];
-
-                if (nightVisionCamera is HandheldTVCamera handheldTVCamera)
-                {
-                    if (!handheldTVCamera.isBeingUsed)
-                        continue;
-
-                    if (handheldTVTerminal.isVisible || handheldTVCamera.mainObjectRenderer.isVisible)
-                    {
-                        lastRenderedCameras.Add(handheldTVCamera.Camera);
-                    }
-                }
-                else if (securityFeedTerminal.isVisible)
-                {
-                    lastRenderedCameras.Add(nightVisionCamera.Camera);
-                }
-
-                if (lastRenderedCameras.Count >= camerasToRenderPerFrame)
-                    break;
-            }
-
-            foreach (var camera in lastRenderedCameras)
-            {
-                camera.enabled = true;
-            }
-
-            currentNightVisionCameraIndex += i;
-            currentNightVisionCameraIndex %= nightVisionCameras.Count;
         }
 
         public void UpdateVisibleLights(ScriptableRenderContext _, Camera camera)
