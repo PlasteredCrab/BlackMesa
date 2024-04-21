@@ -144,9 +144,17 @@ namespace BlackMesa
                 var enabled = handheldTVCamera.isBeingUsed;
 
                 if (enabled)
-                    enabled = handheldTVTerminal.isVisible || handheldTVCamera.mainObjectRenderer.isVisible;
-                if (enabled && i < handheldTVTerminalScreenBounds.Length)
-                    enabled = IsBoundingBoxVisibleOnOtherCameras(handheldTVTerminalScreenBounds[i]);
+                {
+                    if (handheldTVCamera.mainObjectRenderer.isVisible)
+                    {
+                        enabled = true;
+                    }
+                    else if (handheldTVTerminal.isVisible)
+                    {
+                        if (i < handheldTVTerminalScreenBounds.Length)
+                            enabled = IsBoundingBoxVisibleOnOtherCameras(handheldTVTerminalScreenBounds[i]);
+                    }
+                }
 
                 handheldTVCamera.Camera.enabled = enabled;
             }
