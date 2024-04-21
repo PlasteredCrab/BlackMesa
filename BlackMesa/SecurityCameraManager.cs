@@ -37,7 +37,7 @@ namespace BlackMesa
         private Bounds[] securityFeedTerminalScreenBounds;
         int currentSecurityCameraIndex;
 
-        private Camera[] allCameras;
+        private Camera[] allCameras = [];
         private readonly Plane[] frustumPlanes = new Plane[6];
 
         private void Start()
