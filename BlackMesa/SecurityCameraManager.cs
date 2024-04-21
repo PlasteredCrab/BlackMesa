@@ -118,7 +118,7 @@ namespace BlackMesa
                 var securityCamera = securityCameras[i];
                 bool enabled = securityFeedTerminal.isVisible;
 
-                if (enabled)
+                if (enabled && i < securityFeedTerminalScreenBounds.Count)
                     enabled = IsBoundingBoxVisibleOnOtherCameras(securityFeedTerminalScreenBounds[i]);
 
                 securityCamera.Camera.enabled = enabled;
@@ -131,7 +131,7 @@ namespace BlackMesa
 
                 if (enabled)
                     enabled = handheldTVTerminal.isVisible || handheldTVCamera.mainObjectRenderer.isVisible;
-                if (enabled)
+                if (enabled && i < handheldTVTerminalScreenBounds.Count)
                     enabled = IsBoundingBoxVisibleOnOtherCameras(handheldTVTerminalScreenBounds[i]);
 
                 handheldTVCamera.Camera.enabled = enabled;
