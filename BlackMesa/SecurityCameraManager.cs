@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Rendering;
@@ -12,6 +12,9 @@ namespace BlackMesa
     {
         internal List<INightVisionCamera> nightVisionCameras = new List<INightVisionCamera>();
         int currentNightVisionCameraIndex = 0;
+
+        internal HashSet<Camera> nightVisionCameraSet = new HashSet<Camera>();
+        internal List<Light> nightVisionLights = new List<Light>();
 
         internal List<Camera> lastRenderedCameras = new List<Camera>();
 
@@ -31,6 +34,13 @@ namespace BlackMesa
         public List<int> securityCameraMaterialIndices;
         int currentSecurityCameraIndex;
 
+        private void AddNightVisionCamera(INightVisionCamera nightVisionCamera)
+        {
+            nightVisionCameras.Add(nightVisionCamera);
+            nightVisionCameraSet.Add(nightVisionCamera.Camera);
+            nightVisionLights.Add(nightVisionCamera.NightVisionLight);
+        }
+
         public void AssignSecurityCameraFeed(SecurityCamera securityCamera)
         {
             if (currentSecurityCameraIndex >= securityCameraMaterialIndices.Count)
@@ -43,7 +53,7 @@ namespace BlackMesa
             currentSecurityCameraIndex++;
 
             Debug.Log("Added security camera to nightvision camera list");
-            nightVisionCameras.Add(securityCamera);
+            AddNightVisionCamera(securityCamera);
         }
 
         public void AssignHandheldTVFeed(HandheldTVCamera handheldTVCamera, Material targetMaterial)
@@ -61,9 +71,8 @@ namespace BlackMesa
             currentHandheldTVIndex++;
 
             Debug.Log("Added handheld TV to nightvision camera list");
-            nightVisionCameras.Add(handheldTVCamera);
+            AddNightVisionCamera(handheldTVCamera);
         }
-
 
         public void Awake()
         {
@@ -126,24 +135,10 @@ namespace BlackMesa
 
         public void UpdateVisibleLights(ScriptableRenderContext _, Camera camera)
         {
-            bool handheldTVCamsBeingRendered = false;
+            var nightVisionVisible = nightVisionCameraSet.Contains(camera);
 
-            foreach (var securityCam in nightVisionCameras)
-            {
-                //Debug.Log($"{securityCam.securityCamera}");
-                if (securityCam.Camera == camera)
-                {
-                    //Debug.Log($"Security Camera matched");
-                    handheldTVCamsBeingRendered = true;
-                    break;
-                }
-            }
-
-            foreach (var handheldCam in nightVisionCameras)
-            {
-                //Debug.Log(GetPath(handheldCam.nightVisionLight.transform));
-                handheldCam.NightVisionLight.enabled = handheldTVCamsBeingRendered;
-            }
+            foreach (var nightVisionLight in nightVisionLights)
+                nightVisionLight.enabled = nightVisionVisible;
         }
 
         public void OnDisable()
@@ -151,9 +146,5 @@ namespace BlackMesa
             //Debug.Log($"Security Camera Manager Disabled");
             RenderPipelineManager.beginCameraRendering -= UpdateVisibleLights;
         }
-
-
-
-
     }
 }
