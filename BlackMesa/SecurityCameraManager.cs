@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine;
 using DunGen.Graph;
 using DunGen;
+using System.Linq;
 
 namespace BlackMesa
 {
@@ -23,7 +24,8 @@ namespace BlackMesa
         [SerializeField]
         public List<int> handheldTVMaterialIndices;
         [SerializeField]
-        public List<Bounds> handheldTVTerminalScreenBounds;
+        public List<BoxCollider> handheldTVTerminalScreenColliders;
+        private Bounds[] handheldTVTerminalScreenBounds;
         int currentHandheldTVIndex;
 
         [SerializeField]
@@ -31,11 +33,23 @@ namespace BlackMesa
         [SerializeField]
         public List<int> securityCameraMaterialIndices;
         [SerializeField]
-        public List<Bounds> securityFeedTerminalScreenBounds;
+        public List<BoxCollider> securityFeedTerminalScreenColliders;
+        private Bounds[] securityFeedTerminalScreenBounds;
         int currentSecurityCameraIndex;
 
         private Camera[] allCameras;
         private readonly Plane[] frustumPlanes = new Plane[6];
+
+        private void Start()
+        {
+            securityFeedTerminalScreenBounds = new Bounds[securityFeedTerminalScreenColliders.Count];
+            for (var i = 0; i < securityFeedTerminalScreenColliders.Count; i++)
+                securityFeedTerminalScreenBounds[i] = securityFeedTerminalScreenColliders[i].bounds;
+
+            handheldTVTerminalScreenBounds = new Bounds[handheldTVTerminalScreenColliders.Count];
+            for (var i = 0; i < handheldTVTerminalScreenColliders.Count; i++)
+                handheldTVTerminalScreenBounds[i] = handheldTVTerminalScreenColliders[i].bounds;
+        }
 
         private void AddNightVisionCamera(INightVisionCamera nightVisionCamera)
         {
@@ -118,7 +132,7 @@ namespace BlackMesa
                 var securityCamera = securityCameras[i];
                 bool enabled = securityFeedTerminal.isVisible;
 
-                if (enabled && i < securityFeedTerminalScreenBounds.Count)
+                if (enabled && i < securityFeedTerminalScreenBounds.Length)
                     enabled = IsBoundingBoxVisibleOnOtherCameras(securityFeedTerminalScreenBounds[i]);
 
                 securityCamera.Camera.enabled = enabled;
@@ -131,7 +145,7 @@ namespace BlackMesa
 
                 if (enabled)
                     enabled = handheldTVTerminal.isVisible || handheldTVCamera.mainObjectRenderer.isVisible;
-                if (enabled && i < handheldTVTerminalScreenBounds.Count)
+                if (enabled && i < handheldTVTerminalScreenBounds.Length)
                     enabled = IsBoundingBoxVisibleOnOtherCameras(handheldTVTerminalScreenBounds[i]);
 
                 handheldTVCamera.Camera.enabled = enabled;
