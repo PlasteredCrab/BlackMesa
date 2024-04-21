@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Rendering;
@@ -138,7 +138,11 @@ namespace BlackMesa
             var nightVisionVisible = nightVisionCameraSet.Contains(camera);
 
             foreach (var nightVisionLight in nightVisionLights)
+            {
+                if (nightVisionLight == null)
+                    continue;
                 nightVisionLight.enabled = nightVisionVisible;
+            }
         }
 
         public void OnDisable()
