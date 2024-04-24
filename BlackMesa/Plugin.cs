@@ -177,8 +177,6 @@ namespace BlackMesa
 
                         this.harmony.PatchAll(typeof(BlackMesaInterior));
                         this.harmony.PatchAll(typeof(PatchStartOfRound));
-                        this.harmony.PatchAll(typeof(UnityEngine.Object));
-                        this.harmony.PatchAll(typeof(StartOfRound));
                     }
                 }
             }
