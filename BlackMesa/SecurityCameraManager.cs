@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Rendering;
@@ -39,6 +39,9 @@ namespace BlackMesa
 
         private Camera[] allCameras = [];
         private readonly Plane[] frustumPlanes = new Plane[6];
+
+        private const float ActiveTerminalDistance = 15;
+        private const float ActiveTerminalDistanceSqr = ActiveTerminalDistance * ActiveTerminalDistance;
 
         private void Start()
         {
@@ -115,6 +118,8 @@ namespace BlackMesa
                 if ((camera.cullingMask & 1) == 0)
                     continue;
                 if (camera is null || nightVisionCameraSet.Contains(camera))
+                    continue;
+                if ((bounds.center - camera.transform.position).sqrMagnitude > ActiveTerminalDistanceSqr)
                     continue;
 
                 GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
