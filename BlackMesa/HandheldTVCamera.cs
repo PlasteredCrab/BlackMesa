@@ -80,5 +80,19 @@ namespace BlackMesa
             base.EquipItem();
             TurnOffCamera();
         }
+
+        public override void LateUpdate()
+        {
+            base.LateUpdate();
+            if (isPocketed && playerHeldBy != null)
+            {
+                Vector3 positionOffset = new Vector3(0, 2, 0);
+                Vector3 rotationOffset = new Vector3(0, 90, 90);
+
+                var playerSpineTransform = playerHeldBy.lowerSpine;
+                transform.position = playerSpineTransform.position + positionOffset;
+                transform.rotation = playerSpineTransform.rotation * Quaternion.Euler(rotationOffset);
+            }
+        }
     }
 }
