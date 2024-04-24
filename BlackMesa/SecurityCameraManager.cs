@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Rendering;
@@ -38,7 +38,7 @@ namespace BlackMesa
         int currentSecurityCameraIndex;
 
         private Camera[] allCameras = [];
-        private readonly Plane[] frustumPlanes = new Plane[6];
+        private Plane[][] allCameraFrustums = [];
 
         private const float ActiveTerminalDistance = 15;
         private const float ActiveTerminalDistanceSqr = ActiveTerminalDistance * ActiveTerminalDistance;
@@ -109,14 +109,27 @@ namespace BlackMesa
             RenderPipelineManager.beginCameraRendering += UpdateVisibleLights;
         }
 
-        public bool IsBoundingBoxVisibleOnOtherCameras(Bounds bounds, float activeDistanceSqr)
+        private void GetCameraFrustums()
         {
             if (allCameras.Length != Camera.allCamerasCount)
-                allCameras = new Camera[Camera.allCamerasCount];
-            Camera.GetAllCameras(allCameras);
-
-            foreach (var camera in allCameras)
             {
+                allCameras = new Camera[Camera.allCamerasCount];
+                allCameraFrustums = new Plane[allCameras.Length][];
+                for (var i = 0; i < allCameraFrustums.Length; i++)
+                    allCameraFrustums[i] = new Plane[6];
+            }
+
+            Camera.GetAllCameras(allCameras);
+            for (var i = 0; i < allCameras.Length; i++)
+                GeometryUtility.CalculateFrustumPlanes(allCameras[i], allCameraFrustums[i]);
+        }
+
+        public bool IsBoundingBoxVisibleOnOtherCameras(Bounds bounds, float activeDistanceSqr)
+        {
+            for (var i = 0; i < allCameras.Length; i++)
+            {
+                var camera = allCameras[i];
+
                 // Skip if the camera can't see the default layer.
                 if ((camera.cullingMask & 1) == 0)
                     continue;
@@ -125,8 +138,7 @@ namespace BlackMesa
                 if ((bounds.center - camera.transform.position).sqrMagnitude > activeDistanceSqr)
                     continue;
 
-                GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
-                if (GeometryUtility.TestPlanesAABB(frustumPlanes, bounds))
+                if (GeometryUtility.TestPlanesAABB(allCameraFrustums[i], bounds))
                     return true;
             }
 
@@ -135,6 +147,8 @@ namespace BlackMesa
 
         public void Update()
         {
+            GetCameraFrustums();
+
             for (var i = 0; i < securityCameras.Count; i++)
             {
                 var securityCamera = securityCameras[i];
