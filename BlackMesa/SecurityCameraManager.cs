@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Rendering;
@@ -42,6 +42,9 @@ namespace BlackMesa
 
         private const float ActiveTerminalDistance = 15;
         private const float ActiveTerminalDistanceSqr = ActiveTerminalDistance * ActiveTerminalDistance;
+
+        private const float ActiveHandheldDistance = 5;
+        private const float ActiveHandheldDistanceSqr = ActiveHandheldDistance * ActiveHandheldDistance;
 
         private void Start()
         {
@@ -106,7 +109,7 @@ namespace BlackMesa
             RenderPipelineManager.beginCameraRendering += UpdateVisibleLights;
         }
 
-        public bool IsBoundingBoxVisibleOnOtherCameras(Bounds bounds)
+        public bool IsBoundingBoxVisibleOnOtherCameras(Bounds bounds, float activeDistanceSqr)
         {
             if (allCameras.Length != Camera.allCamerasCount)
                 allCameras = new Camera[Camera.allCamerasCount];
@@ -119,7 +122,7 @@ namespace BlackMesa
                     continue;
                 if (camera is null || nightVisionCameraSet.Contains(camera))
                     continue;
-                if ((bounds.center - camera.transform.position).sqrMagnitude > ActiveTerminalDistanceSqr)
+                if ((bounds.center - camera.transform.position).sqrMagnitude > activeDistanceSqr)
                     continue;
 
                 GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
@@ -138,7 +141,7 @@ namespace BlackMesa
                 bool enabled = securityFeedTerminal.isVisible;
 
                 if (enabled && i < securityFeedTerminalScreenBounds.Length)
-                    enabled = IsBoundingBoxVisibleOnOtherCameras(securityFeedTerminalScreenBounds[i]);
+                    enabled = IsBoundingBoxVisibleOnOtherCameras(securityFeedTerminalScreenBounds[i], ActiveTerminalDistanceSqr);
 
                 securityCamera.Camera.enabled = enabled;
             }
@@ -150,15 +153,16 @@ namespace BlackMesa
 
                 if (enabled)
                 {
+                    enabled = false;
+
                     if (handheldTVCamera.mainObjectRenderer.isVisible)
                     {
-                        enabled = true;
+                        if (IsBoundingBoxVisibleOnOtherCameras(handheldTVCamera.mainObjectRenderer.bounds, ActiveHandheldDistanceSqr))
+                            enabled = true;
                     }
-                    else if (handheldTVTerminal.isVisible)
-                    {
-                        if (i < handheldTVTerminalScreenBounds.Length)
-                            enabled = IsBoundingBoxVisibleOnOtherCameras(handheldTVTerminalScreenBounds[i]);
-                    }
+                    
+                    if (!enabled && handheldTVTerminal.isVisible && i < handheldTVTerminalScreenBounds.Length)
+                        enabled = IsBoundingBoxVisibleOnOtherCameras(handheldTVTerminalScreenBounds[i], ActiveTerminalDistanceSqr);
                 }
 
                 handheldTVCamera.Camera.enabled = enabled;
