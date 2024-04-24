@@ -20,7 +20,6 @@ namespace BlackMesa
 {
 
     [BepInPlugin("Plastered_Crab.BlackMesaInterior", "Black Mesa Interior", "0.9.0")] // Set your mod name and set your version number
-    [BepInDependency("evaisa.lethallib", BepInDependency.DependencyFlags.HardDependency)]
     public class BlackMesaInterior : BaseUnityPlugin
     {
         public static string GetPath(UnityEngine.Transform obj)
