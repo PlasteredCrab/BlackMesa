@@ -152,6 +152,9 @@ namespace BlackMesa
             for (var i = 0; i < securityCameras.Count; i++)
             {
                 var securityCamera = securityCameras[i];
+                if (securityCamera == null)
+                    continue;
+
                 bool enabled = securityFeedTerminal.isVisible;
 
                 if (enabled && i < securityFeedTerminalScreenBounds.Length)
@@ -163,6 +166,9 @@ namespace BlackMesa
             for (var i = 0; i < handheldTVCameras.Count; i++)
             {
                 var handheldTVCamera = handheldTVCameras[i];
+                if (handheldTVCamera == null)
+                    continue;
+
                 var enabled = handheldTVCamera.isBeingUsed;
 
                 if (enabled)
