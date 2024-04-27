@@ -82,7 +82,7 @@ namespace BlackMesa
             configSizeClampingMin = Config.Bind("Size", "DungeonSizeClampingMin", 1f, new ConfigDescription("Input the dungeon's minimum size multiplier.\nDefault: 1", dungeonSizeAcceptableValues));
             configSizeClampingMax = Config.Bind("Size", "DungeonSizeClampingMax", 3f, new ConfigDescription("Input the dungeon's maximum size multiplier.\nDefault: 3", dungeonSizeAcceptableValues));
             configSizeClampingStrength = Config.Bind("Size", "DungeonSizeClampingStrength", 1f, new ConfigDescription("Defines the amount of effect the clamping should have on the dungeon size multiplier. Lower values will result in less clamping, whereas higher values will limit the values further.", new AcceptableValueRange<float>(0, 1)));
-            configTileSize = Config.Bind("Size", "DungeonTileSize", 2.5f, new ConfigDescription("Input the average size of a tile in the Black Mesa dungeon.\nDefault: 2.0", new AcceptableValueRange<float>(0.5f, 50.0f)));
+            configTileSize = Config.Bind("Size", "DungeonTileSize", 2.5f, new ConfigDescription("Input the average size of a tile in the Black Mesa dungeon.\nDefault: 2.0", new AcceptableValueRange<float>(0.5f, 10.0f)));
 
             // Create an ExtendedDungeonFlow object and initialize it with dungeon flow information
             ExtendedDungeonFlow BlackMesaExtendedDungeon = ScriptableObject.CreateInstance<ExtendedDungeonFlow>();
