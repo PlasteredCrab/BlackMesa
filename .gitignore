@@ -396,3 +396,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/BlackMesa/HandheldTVCamera.cs
+/BlackMesa/Plugin.cs
+/BlackMesa/Tripmine.cs
+/BlackMesa/Tripmine.cs
