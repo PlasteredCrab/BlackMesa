@@ -134,7 +134,7 @@ namespace BlackMesa
             BlackMesaExtendedDungeon.IsDynamicDungeonSizeRestrictionEnabled = configDynamicToggle.Value;
             BlackMesaExtendedDungeon.DynamicDungeonSizeMinMax = new Vector2(configMinSize.Value, configMaxSize.Value);
             BlackMesaExtendedDungeon.DynamicDungeonSizeLerpRate = configDynamicValue.Value;
-            BlackMesaExtendedDungeon.MapTileSize = configMaxSize.Value;
+            BlackMesaExtendedDungeon.MapTileSize = configTileSize.Value;
 
             harmony.PatchAll(typeof(PatchStartOfRound));
         }
