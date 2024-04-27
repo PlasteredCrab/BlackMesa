@@ -135,8 +135,7 @@ namespace BlackMesa
             BlackMesaExtendedDungeon.dungeonSizeLerpPercentage = configDynamicValue.Value;
             BlackMesaExtendedDungeon.enableDynamicDungeonSizeRestriction = configDynamicToggle.Value;
 
-            this.harmony.PatchAll(typeof(BlackMesaInterior));
-            this.harmony.PatchAll(typeof(PatchStartOfRound));
+            harmony.PatchAll(typeof(PatchStartOfRound));
         }
         // variables that are called throughout the script
 
@@ -204,41 +203,6 @@ namespace BlackMesa
             {
                 // If parsing fails, use the default rarity value
                 return new StringWithRarity(parts[0], newRarity);
-            }
-        }
-
-        // Patching Different item Group Mismatch
-        [HarmonyPatch(typeof(UnityEngine.Object))]
-        private class ItemGroupPatch
-        {
-            // Patch the Equals method
-            [HarmonyPatch("Equals")]
-            [HarmonyPrefix]
-            public static bool FixItemGroupEquals(ref bool __result, object __instance, object other)
-            {
-                Debug.Log("IS THIS RUNNING ??!?!?!?!");
-                // Cast the instance to ItemGroup if possible
-                ItemGroup itemGroup = (ItemGroup)((__instance is ItemGroup) ? __instance : null);
-
-                // If the cast was successful
-                if (itemGroup != null)
-                {
-                    // Cast the other object to ItemGroup if possible
-                    ItemGroup itemGroup2 = (ItemGroup)((other is ItemGroup) ? other : null);
-
-                    // If the second cast was successful
-                    if (itemGroup2 != null)
-                    {
-                        // Compare the itemSpawnTypeName properties of the two ItemGroups
-                        __result = itemGroup.itemSpawnTypeName == itemGroup2.itemSpawnTypeName;
-
-                        // Prevent the original Equals method from being executed
-                        return false;
-                    }
-                }
-
-                // Allow the original Equals method to be executed
-                return true;
             }
         }
     }
