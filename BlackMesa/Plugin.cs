@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -81,6 +81,7 @@ namespace BlackMesa
             configMinSize = Config.Bind("Size", "DungeonMinSize", 0.3f, new ConfigDescription("Input the minimum's dungeon size multiplier.\nDefault: 0.5", (AcceptableValueBase)null, Array.Empty<object>()));
             configMaxSize = Config.Bind("Size", "DungeonMaxSize", 0.45f, new ConfigDescription("Input the maximum's dungeon size multiplier.\nDefault: 0.65", (AcceptableValueBase)null, Array.Empty<object>()));
             configDynamicValue = Config.Bind("Size", "DynamicScaleValue", 0.9f, new ConfigDescription("If the DungeonMinSize/DungeonMaxSize is above or below the next two settings, the dungeon size multiplier will aproximate to the value between the moon's specific dungeon size and this value.\nExample 1: If set to 0, the dungeon size will not be higher than DungeonMaxSize.\nExample 2: If set to 0.5, the dungeon size will be between the DungeonMaxSize and the moon's dungeon size multiplier.\nExample 3: If Set To 1, the dungeon size will be the moon's dungeon size multiplier with no restrictions.\nATTENTION: It is recommended to let it at default value or lower, the closer to 1 the bigger the dungeon.\nDefault: 0.8", (AcceptableValueBase)null, Array.Empty<object>()));
+            configTileSize = Config.Bind("Size", "DungeonTileSize", 2.0f, new ConfigDescription("Input the average size of a tile in the Black Mesa dungeon.\nDefault: 2.0", new AcceptableValueRange<float>(0.5f, 5.0f)));
 
             // Create an ExtendedDungeonFlow object and initialize it with dungeon flow information
             ExtendedDungeonFlow BlackMesaExtendedDungeon = ScriptableObject.CreateInstance<ExtendedDungeonFlow>();
@@ -133,7 +134,7 @@ namespace BlackMesa
             BlackMesaExtendedDungeon.IsDynamicDungeonSizeRestrictionEnabled = configDynamicToggle.Value;
             BlackMesaExtendedDungeon.DynamicDungeonSizeMinMax = new Vector2(configMinSize.Value, configMaxSize.Value);
             BlackMesaExtendedDungeon.DynamicDungeonSizeLerpRate = configDynamicValue.Value;
-            BlackMesaExtendedDungeon.enableDynamicDungeonSizeRestriction = configDynamicToggle.Value;
+            BlackMesaExtendedDungeon.MapTileSize = configMaxSize.Value;
 
             harmony.PatchAll(typeof(PatchStartOfRound));
         }
@@ -168,7 +169,7 @@ namespace BlackMesa
         private ConfigEntry<float> configMinSize;
         private ConfigEntry<float> configMaxSize;
         private ConfigEntry<float> configDynamicValue;
-        private ConfigEntry<bool> configDynamicToggle;
+        private ConfigEntry<float> configTileSize;
 
         private string[] configInteriorMoonsValues = ["all", "list"];
         // List of preset values for configBunkerMoons entry
