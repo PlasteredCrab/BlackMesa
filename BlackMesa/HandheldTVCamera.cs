@@ -44,7 +44,7 @@ namespace BlackMesa
             //RoundManager.PlayRandomClip
 
             //Vector3 explosionPosition, bool spawnExplosionEffect = false, float killRange = 1f, float damageRange = 1f)
-            Landmine.SpawnExplosion(this.transform.position, spawnExplosionEffect: true, 1f, 2f); //, 90);  //for v50
+            Landmine.SpawnExplosion(this.transform.position, spawnExplosionEffect: true, 1f, 2f, 90);  //for v50
 
             // drop the item
             if (this.playerHeldBy != null)
