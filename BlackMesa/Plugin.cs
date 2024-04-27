@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -78,9 +78,9 @@ namespace BlackMesa
             configInteriorMoonsList = Config.Bind("Black Mesa Interior", "InteriorDungeonMoonsList", "Black Mesa:99999", new ConfigDescription("Note: Requires 'InteriorMoons' to be set to 'list'. \nCan be used to specify a list of moons with individual rarities for moons to spawn on. \nRarity values will override the default rarity value provided in Interior Rarity and will override InteriorGuaranteed. To guarantee dungeon spawning on a moon, assign arbitrarily high rarity value (e.g.  99999). \nMoons and rarities should be provided as a comma-separated list in the following format: 'Name:Rarity' Example: March:150,Offense:150 \nNote: Moon names are checked by string matching, i.e. the moon name 'dine' would enable spawning on 'dine', 'diner' and 'undine'. Be careful with modded moon names.", null));
             configGuaranteedInterior = Config.Bind("Black Mesa Interior", "InteriorGuaranteed", defaultValue: false, new ConfigDescription("If enabled, the Interior will be effectively guaranteed to spawn. Only recommended for debugging/sightseeing purposes.", null)); // unused Config
             configDynamicToggle = Config.Bind("Size", "DynamicScaleToggle", true, new ConfigDescription("Enables the next 3 options. \nATTENTION: READ CAREFULLY HOW IT WORKS. This adjust the dungeon size accordingly to which moon you visit, it is recommended to let it on true\nDefault: true", (AcceptableValueBase)null, Array.Empty<object>()));
-            configDynamicValue = Config.Bind("Size", "DynamicScaleValue", 0.9f, new ConfigDescription("If the DungeonMinSize/DungeonMaxSize is above or below the next two settings, the dungeon size multiplier will aproximate to the value between the moon's specific dungeon size and this value.\nExample 1: If set to 0, the dungeon size will not be higher than DungeonMaxSize.\nExample 2: If set to 0.5, the dungeon size will be between the DungeonMaxSize and the moon's dungeon size multiplier.\nExample 3: If Set To 1, the dungeon size will be the moon's dungeon size multiplier with no restrictions.\nATTENTION: It is recommended to let it at default value or lower, the closer to 1 the bigger the dungeon.\nDefault: 0.8", (AcceptableValueBase)null, Array.Empty<object>()));
             configMinSize = Config.Bind("Size", "DungeonMinSize", 0.3f, new ConfigDescription("Input the minimum's dungeon size multiplier.\nDefault: 0.5", (AcceptableValueBase)null, Array.Empty<object>()));
             configMaxSize = Config.Bind("Size", "DungeonMaxSize", 0.45f, new ConfigDescription("Input the maximum's dungeon size multiplier.\nDefault: 0.65", (AcceptableValueBase)null, Array.Empty<object>()));
+            configDynamicValue = Config.Bind("Size", "DynamicScaleValue", 0.9f, new ConfigDescription("If the DungeonMinSize/DungeonMaxSize is above or below the next two settings, the dungeon size multiplier will aproximate to the value between the moon's specific dungeon size and this value.\nExample 1: If set to 0, the dungeon size will not be higher than DungeonMaxSize.\nExample 2: If set to 0.5, the dungeon size will be between the DungeonMaxSize and the moon's dungeon size multiplier.\nExample 3: If Set To 1, the dungeon size will be the moon's dungeon size multiplier with no restrictions.\nATTENTION: It is recommended to let it at default value or lower, the closer to 1 the bigger the dungeon.\nDefault: 0.8", (AcceptableValueBase)null, Array.Empty<object>()));
 
             // Create an ExtendedDungeonFlow object and initialize it with dungeon flow information
             ExtendedDungeonFlow BlackMesaExtendedDungeon = ScriptableObject.CreateInstance<ExtendedDungeonFlow>();
@@ -130,9 +130,9 @@ namespace BlackMesa
             mls.LogInfo("Loaded Extended DungeonFlow");
 
             // Configure dungeon size parameters and apply Harmony patches
-            BlackMesaExtendedDungeon.dungeonSizeMin = configMinSize.Value;
-            BlackMesaExtendedDungeon.dungeonSizeMax = configMaxSize.Value;
-            BlackMesaExtendedDungeon.dungeonSizeLerpPercentage = configDynamicValue.Value;
+            BlackMesaExtendedDungeon.IsDynamicDungeonSizeRestrictionEnabled = configDynamicToggle.Value;
+            BlackMesaExtendedDungeon.DynamicDungeonSizeMinMax = new Vector2(configMinSize.Value, configMaxSize.Value);
+            BlackMesaExtendedDungeon.DynamicDungeonSizeLerpRate = configDynamicValue.Value;
             BlackMesaExtendedDungeon.enableDynamicDungeonSizeRestriction = configDynamicToggle.Value;
 
             harmony.PatchAll(typeof(PatchStartOfRound));
@@ -163,7 +163,8 @@ namespace BlackMesa
         private ConfigEntry<bool> configGuaranteedInterior;
         // Configuration entry for toggling whether the Bunker dungeon is guaranteed to spawn
 
-        // new variables for size
+        // Dungeon size configuration
+        private ConfigEntry<bool> configDynamicToggle;
         private ConfigEntry<float> configMinSize;
         private ConfigEntry<float> configMaxSize;
         private ConfigEntry<float> configDynamicValue;
