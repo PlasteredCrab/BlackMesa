@@ -32,7 +32,6 @@ namespace BlackMesa
             // Instantiating game objects and managing singleton instance
             Instance = this;
 
-            
             // Retrieving types from the executing assembly
             Type[] types = Assembly.GetExecutingAssembly().GetTypes();
             foreach (Type type in types)
@@ -55,7 +54,7 @@ namespace BlackMesa
 
             // Loading Interior Dungeon assets from AssetBundle
             string directoryName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            BlackMesaAssets = AssetBundle.LoadFromFile(Path.Combine(directoryName, "blackmesainterior")); // Loading Assetbundle name it your mod and asset name 
+            BlackMesaAssets = AssetBundle.LoadFromFile(Path.Combine(directoryName, "blackmesainterior")); // Loading Assetbundle name it your mod and asset name
             if (BlackMesaAssets == null)
             {
                 mls.LogError("Failed to load Interior Dungeon assets.");
