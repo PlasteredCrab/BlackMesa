@@ -22,7 +22,7 @@ namespace BlackMesa
         private static bool SpawnNestObjectForOutsideEnemyPrefix(RoundManager __instance, EnemyType enemyType, System.Random randomSeed)
         {
             if (__instance.currentLevel.name != "Black Mesa")
-                return false;
+                return true;
 
             int nestIndex = randomSeed.Next(0, Instance.NestPositions.Count);
             Vector3 position = Instance.NestPositions[nestIndex].position;
@@ -39,7 +39,7 @@ namespace BlackMesa
                 __instance.enemyNestSpawnObjects.Add(gameObject.GetComponent<EnemyAINestSpawnObject>());
             enemyType.nestsSpawned++;
 
-            return true;
+            return false;
         }
     }
 }
