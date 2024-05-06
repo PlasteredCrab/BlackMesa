@@ -137,6 +137,7 @@ namespace BlackMesa
             BlackMesaExtendedDungeon.MapTileSize = configTileSize.Value;
 
             harmony.PatchAll(typeof(PatchStartOfRound));
+            harmony.PatchAll(typeof(NestOverride));
         }
         // variables that are called throughout the script
 
