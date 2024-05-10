@@ -21,7 +21,7 @@ namespace BlackMesa
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnNestObjectForOutsideEnemy))]
         private static bool SpawnNestObjectForOutsideEnemyPrefix(RoundManager __instance, EnemyType enemyType, System.Random randomSeed)
         {
-            if (__instance.currentLevel.name != "Black Mesa")
+            if (__instance.currentLevel.PlanetName != "Black Mesa")
                 return true;
 
             int nestIndex = randomSeed.Next(0, Instance.NestPositions.Count);
