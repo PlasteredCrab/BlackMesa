@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace BlackMesa
@@ -31,9 +31,6 @@ namespace BlackMesa
                 securityCamera.enabled = true;
             else
                 securityCamera.enabled = false;
-            Debug.Log($"{isBeingUsed} {isPocketed}");
-            //BlackMesaInterior.Instance.mls.LogInfo($"{isBeingUsed} {isPocketed}" );
-
         }
 
         public void DestroyTv()
