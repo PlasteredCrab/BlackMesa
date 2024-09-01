@@ -28,8 +28,8 @@ namespace BlackMesa
 
             // Load Interior Dungeon assets from the AssetBundle.
             string directoryName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            var BlackMesaAssets = AssetBundle.LoadFromFile(Path.Combine(directoryName, "blackmesainterior"));
-            if (BlackMesaAssets == null)
+            var blackMesaAssets = AssetBundle.LoadFromFile(Path.Combine(directoryName, "blackmesainterior"));
+            if (blackMesaAssets == null)
             {
                 Logger.LogError("Failed to load Interior Dungeon assets.");
                 return;
@@ -37,15 +37,15 @@ namespace BlackMesa
             Logger.LogInfo("Interior Assets loaded successfully.");
 
             // Retrieve the Extended Dungeon Flow from the AssetBundle.
-            ExtendedDungeonFlow BlackMesaExtendedDungeon = BlackMesaAssets.LoadAsset<ExtendedDungeonFlow>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Black Mesa Extended Flow.asset");
-            if (BlackMesaExtendedDungeon == null)
+            ExtendedDungeonFlow blackMesaExtendedDungeon = blackMesaAssets.LoadAsset<ExtendedDungeonFlow>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Black Mesa Extended Flow.asset");
+            if (blackMesaExtendedDungeon == null)
             {
                 Logger.LogError("Failed to load Interior Dungeon Flow.");
                 return;
             }
 
             // Register the Extended Dungeon Flow with LLL.
-            PatchedContent.RegisterExtendedDungeonFlow(BlackMesaExtendedDungeon);
+            PatchedContent.RegisterExtendedDungeonFlow(blackMesaExtendedDungeon);
             Logger.LogInfo("Loaded Extended DungeonFlow.");
 
             // Apply patches.
