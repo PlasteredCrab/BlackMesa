@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -20,13 +20,13 @@ namespace BlackMesa
         // Awake method is called before the Menu Screen initialization
         private void Awake()
         {
-            // Instantiating game objects and managing singleton instance
+            // Store the plugin as a singleton instance.
             Instance = this;
 
-            // Store a logger in a static field for use throughout the mod
+            // Store a logger in a static field for use throughout the mod.
             Logger = base.Logger;
 
-            // Loading Interior Dungeon assets from AssetBundle
+            // Load Interior Dungeon assets from the AssetBundle.
             string directoryName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var BlackMesaAssets = AssetBundle.LoadFromFile(Path.Combine(directoryName, "blackmesainterior"));
             if (BlackMesaAssets == null)
@@ -36,7 +36,7 @@ namespace BlackMesa
             }
             Logger.LogInfo("Interior Assets loaded successfully");
 
-            // Loading Extended Dungeon Flow from AssetBundle
+            // Retrieve the Extended Dungeon Flow from the AssetBundle.
             ExtendedDungeonFlow BlackMesaExtendedDungeon = BlackMesaAssets.LoadAsset<ExtendedDungeonFlow>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Black Mesa Extended Flow.asset");
             if (BlackMesaExtendedDungeon == null)
             {
@@ -44,23 +44,24 @@ namespace BlackMesa
                 return;
             }
 
-            // Register the Extended Dungeon Flow with LLL
+            // Register the Extended Dungeon Flow with LLL.
             PatchedContent.RegisterExtendedDungeonFlow(BlackMesaExtendedDungeon);
             Logger.LogInfo("Loaded Extended DungeonFlow");
 
-            //Harmony Patches
+            // Apply patches.
             harmony.PatchAll(typeof(PatchStartOfRound));
         }
+
         // variables that are called throughout the script
 
-        private readonly Harmony harmony = new(GUID);
         // Harmony instance used for patching methods in the game
+        private readonly Harmony harmony = new(GUID);
 
-        public static BlackMesaInterior Instance;
         // Singleton instance of the BlackMesaInterior class
+        public static BlackMesaInterior Instance;
 
-        new internal static ManualLogSource Logger;
-        // Logger instance for logging messages and debugging information      
+        // Logger instance for logging messages and debugging information  
+        new internal static ManualLogSource Logger;    
     }
 
 }
