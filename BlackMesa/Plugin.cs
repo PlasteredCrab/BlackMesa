@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -22,35 +22,34 @@ namespace BlackMesa
         {
             // Instantiating game objects and managing singleton instance
             Instance = this;
-            
-            // Creating a logger to handle log errors and debug messages
-            mls = BepInEx.Logging.Logger.CreateLogSource("Black Mesa Interior");
+
+            // Store a logger in a static field for use throughout the mod
+            Logger = base.Logger;
 
             // Loading Interior Dungeon assets from AssetBundle
             string directoryName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var BlackMesaAssets = AssetBundle.LoadFromFile(Path.Combine(directoryName, "blackmesainterior"));
             if (BlackMesaAssets == null)
             {
-                mls.LogError("Failed to load Interior Dungeon assets.");
+                Logger.LogError("Failed to load Interior Dungeon assets.");
                 return;
             }
-            mls.LogInfo("Interior Assets loaded successfully");
+            Logger.LogInfo("Interior Assets loaded successfully");
 
             // Loading Extended Dungeon Flow from AssetBundle
             ExtendedDungeonFlow BlackMesaExtendedDungeon = BlackMesaAssets.LoadAsset<ExtendedDungeonFlow>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Black Mesa Extended Flow.asset");
             if (BlackMesaExtendedDungeon == null)
             {
-                mls.LogError("Failed to load Interior Dungeon Flow.");
+                Logger.LogError("Failed to load Interior Dungeon Flow.");
                 return;
             }
 
             // Register the Extended Dungeon Flow with LLL
             PatchedContent.RegisterExtendedDungeonFlow(BlackMesaExtendedDungeon);
-            mls.LogInfo("Loaded Extended DungeonFlow");
+            Logger.LogInfo("Loaded Extended DungeonFlow");
 
             //Harmony Patches
             harmony.PatchAll(typeof(PatchStartOfRound));
-
         }
         // variables that are called throughout the script
 
@@ -60,7 +59,8 @@ namespace BlackMesa
         public static BlackMesaInterior Instance;
         // Singleton instance of the BlackMesaInterior class
 
-        internal ManualLogSource mls;
+        new internal static ManualLogSource Logger;
         // Logger instance for logging messages and debugging information      
     }
+
 }
