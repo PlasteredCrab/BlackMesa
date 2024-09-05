@@ -53,7 +53,7 @@ namespace BlackMesa
             base.LateUpdate();
             if (isPocketed && playerHeldBy != null)
             {
-                Vector3 positionOffset = new Vector3(0, 2, 0);
+                Vector3 positionOffset = new Vector3(0, 1, 0);
                 Vector3 rotationOffset = new Vector3(0, 90, 90);
 
                 var playerSpineTransform = playerHeldBy.lowerSpine;
