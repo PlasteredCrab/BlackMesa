@@ -187,17 +187,23 @@ namespace BlackMesa
 
                 handheldTVCamera.Camera.enabled = enabled;
             }
+
+            // Allow CullFactory to be aware that these will likely be visible during the render pass.
+            SetNightVisionVisible(true);
         }
 
         public void UpdateVisibleLights(ScriptableRenderContext _, Camera camera)
         {
-            var nightVisionVisible = nightVisionCameraSet.Contains(camera);
+            SetNightVisionVisible(nightVisionCameraSet.Contains(camera));
+        }
 
+        private void SetNightVisionVisible(bool visible)
+        {
             foreach (var nightVisionLight in nightVisionLights)
             {
                 if (nightVisionLight == null)
                     continue;
-                nightVisionLight.enabled = nightVisionVisible;
+                nightVisionLight.enabled = visible;
             }
         }
 
