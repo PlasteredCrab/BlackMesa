@@ -20,8 +20,10 @@ namespace BlackMesa
         {
             base.Start();
             securityCamera.targetTexture = new RenderTexture(securityCamera.targetTexture);
-            onMaterial = new Material(onMaterial);
-            onMaterial.mainTexture = securityCamera.targetTexture;
+            onMaterial = new Material(onMaterial)
+            {
+                mainTexture = securityCamera.targetTexture
+            };
 
             SecurityCameraManager.Instance.AssignHandheldTVFeed(this, onMaterial);
         }
