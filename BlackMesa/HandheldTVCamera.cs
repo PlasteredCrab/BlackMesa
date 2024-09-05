@@ -26,14 +26,6 @@ namespace BlackMesa
             SecurityCameraManager.Instance.AssignHandheldTVFeed(this, onMaterial);
         }
 
-        public void TurnOffCamera()
-        {
-            if (isBeingUsed && !isPocketed)
-                securityCamera.enabled = true;
-            else
-                securityCamera.enabled = false;
-        }
-
         public void DestroyTv()
         {
             var explosionAt = transform;
@@ -52,30 +44,6 @@ namespace BlackMesa
 
             if (IsServer)
                 Destroy(gameObject);
-        }
-
-        public override void ItemInteractLeftRight(bool right)
-        {
-            base.ItemInteractLeftRight(right);
-            TurnOffCamera();
-        }
-
-        public override void UseUpBatteries()
-        {
-            base.UseUpBatteries();
-            TurnOffCamera();
-        }
-
-        public override void PocketItem()
-        {
-            base.PocketItem();
-            TurnOffCamera();
-        }
-
-        public override void EquipItem()
-        {
-            base.EquipItem();
-            TurnOffCamera();
         }
 
         public override void LateUpdate()
