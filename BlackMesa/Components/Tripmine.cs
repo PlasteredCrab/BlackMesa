@@ -1,19 +1,15 @@
-﻿using LethalLib.Modules;
-using System;
 using UnityEngine;
-using UnityEditor;
 
 namespace BlackMesa.Components
 {
-    //[ExecuteAlways]
-    internal class TripmineTest : MonoBehaviour
+    internal class Tripmine : MonoBehaviour
     {
         public LineRenderer laserRenderer;
-        public BoxCollider laserCollider; // Collider for the laser beam
-        public LayerMask playerLayer; // Layer to detect players
+        public BoxCollider laserCollider;
+        public LayerMask playerLayer;
+
         public float killRadius;
         public float hurtRadius;
-
 
         private void Start()
         {
