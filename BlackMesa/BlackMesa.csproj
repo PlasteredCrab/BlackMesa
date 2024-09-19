@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
@@ -22,61 +22,31 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="0Harmony">
+      <Reference Include="0Harmony" Private="false">
         <HintPath>..\..\Libraries\0Harmony.dll</HintPath>
       </Reference>
-      <Reference Include="Assembly-CSharp" Publicize="true">
+      <Reference Include="Assembly-CSharp" Publicize="true" Private="false">
         <HintPath>..\..\Libraries\Assembly-CSharp.dll</HintPath>
       </Reference>
-      <Reference Include="BepInEx">
-        <HintPath>..\..\Libraries\BepInEx.dll</HintPath>
-      </Reference>
-      <Reference Include="BepInEx.Harmony">
-        <HintPath>..\..\Libraries\BepInEx.Harmony.dll</HintPath>
-      </Reference>
-      <Reference Include="BepInEx.MonoMod.HookGenPatcher">
-        <HintPath>..\..\Libraries\BepInEx.MonoMod.HookGenPatcher.dll</HintPath>
-      </Reference>
-      <Reference Include="BepInEx.Preloader">
-        <HintPath>..\..\Libraries\BepInEx.Preloader.dll</HintPath>
-      </Reference>
-      <Reference Include="LethalLevelLoader">
+      <Reference Include="LethalLevelLoader" Private="false">
         <HintPath>..\..\Libraries\LethalLevelLoader.dll</HintPath>
       </Reference>
-      <Reference Include="LethalLib">
+      <Reference Include="LethalLib" Private="false">
         <HintPath>..\..\Libraries\LethalLib.dll</HintPath>
       </Reference>
-      <Reference Include="Mono.Cecil.Pdb">
-        <HintPath>..\..\Libraries\Mono.Cecil.Pdb.dll</HintPath>
-      </Reference>
-      <Reference Include="Mono.Cecil.Rocks">
-        <HintPath>..\..\Libraries\Mono.Cecil.Rocks.dll</HintPath>
-      </Reference>
-      <Reference Include="MonoMod">
-        <HintPath>..\..\Libraries\MonoMod.dll</HintPath>
-      </Reference>
-      <Reference Include="MonoMod.RuntimeDetour">
-        <HintPath>..\..\Libraries\MonoMod.RuntimeDetour.dll</HintPath>
-      </Reference>
-      <Reference Include="MonoMod.RuntimeDetour.HookGen">
-        <HintPath>..\..\Libraries\MonoMod.RuntimeDetour.HookGen.dll</HintPath>
-      </Reference>
-      <Reference Include="MonoMod.Utils">
-        <HintPath>..\..\Libraries\MonoMod.Utils.dll</HintPath>
-      </Reference>
-      <Reference Include="Unity.Netcode.Components">
+      <Reference Include="Unity.Netcode.Components" Private="false">
         <HintPath>..\..\Libraries\Unity.Netcode.Components.dll</HintPath>
       </Reference>
-      <Reference Include="Unity.Netcode.Runtime">
+      <Reference Include="Unity.Netcode.Runtime" Private="false">
         <HintPath>..\..\Libraries\Unity.Netcode.Runtime.dll</HintPath>
       </Reference>
-      <Reference Include="Unity.Networking.Transport">
+      <Reference Include="Unity.Networking.Transport" Private="false">
         <HintPath>..\..\Libraries\Unity.Networking.Transport.dll</HintPath>
       </Reference>
-      <Reference Include="UnityEngine">
+      <Reference Include="UnityEngine" Private="false">
         <HintPath>..\..\Libraries\UnityEngine.dll</HintPath>
       </Reference>
-      <Reference Include="UnityEngine.CoreModule">
+      <Reference Include="UnityEngine.CoreModule" Private="false">
         <HintPath>..\..\Libraries\UnityEngine.CoreModule.dll</HintPath>
       </Reference>
     </ItemGroup>
