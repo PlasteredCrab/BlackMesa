@@ -12,6 +12,7 @@ public class AcidWater : MonoBehaviour
 {
 
     public int DamageAmount;
+    public float DamageTickRate;
     private float TimeSincePlayerDamaged = 0f;
 
     private void OnTriggerStay(Collider other)
@@ -21,7 +22,7 @@ public class AcidWater : MonoBehaviour
         {
             return;
         }
-        if ((TimeSincePlayerDamaged < 0.5f))
+        if ((TimeSincePlayerDamaged < DamageTickRate))
         {
             TimeSincePlayerDamaged += Time.deltaTime;
             return;
