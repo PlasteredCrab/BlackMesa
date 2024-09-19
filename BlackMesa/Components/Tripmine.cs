@@ -21,14 +21,8 @@ namespace BlackMesa.Components
             SetupLaserAndCollider();
         }
 
-        // Method to handle the laser and collider adjustments
         public void SetupLaserAndCollider()
         {
-            /*if (PrefabUtility.IsPartOfPrefabAsset(gameObject))
-            {
-                return;
-            }*/
-
             if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, LayerMask.GetMask(new string[] { "Room", "Default" })))
             {
                 gameObject.SetActive(false);
@@ -42,22 +36,18 @@ namespace BlackMesa.Components
             float distanceToWall = hit.distance / transform.lossyScale.y;
             float halfDistance = distanceToWall / 2f;
 
-            Vector3[] laserPoints = new Vector3[2];
-            laserPoints[0] = transform.position;
-            laserPoints[1] = hit.point;
+            // Create an array of points for the line renderer to use
+            Vector3[] laserPoints = [transform.position, hit.point];
 
             var laserRendererLocal = laserRenderer.transform.worldToLocalMatrix;
-
             for (var i = 0; i < laserPoints.Length; i++)
-            {
                 laserPoints[i] = laserRendererLocal.MultiplyPoint3x4(laserPoints[i]);
-            }
 
             laserRenderer.SetPositions(laserPoints);
 
             // Adjust the BoxCollider size and center
             laserCollider.size = new Vector3(laserCollider.size.x, distanceToWall, laserCollider.size.z);
-            laserCollider.center = new Vector3(0f, -halfDistance, 0f); 
+            laserCollider.center = new Vector3(0f, -halfDistance, 0f);
         }
 
         private void OnTriggerEnter(Collider other)
@@ -73,11 +63,6 @@ namespace BlackMesa.Components
             BetterExplosion.SpawnExplosion(transform.position, killRadius, hurtRadius, 90);
 
             Destroy(gameObject);
-
-            // destroy it on the server?
-            /*if (Unity.Netcode.NetworkBehaviour.IsServer)
-                Destroy(gameObject);*/
-            
         }
 
         private void OnDrawGizmosSelected()
