@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 
-namespace BlackMesa
+namespace BlackMesa.Patches
 {
     [HarmonyPatch(typeof(StartOfRound))]
     public sealed class PatchStartOfRound
