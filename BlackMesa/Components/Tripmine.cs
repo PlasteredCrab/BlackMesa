@@ -16,11 +16,6 @@ namespace BlackMesa.Components
             SetupLaserAndCollider();
         }
 
-        private void Update()
-        {
-            SetupLaserAndCollider();
-        }
-
         public void SetupLaserAndCollider()
         {
             if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, LayerMask.GetMask(new string[] { "Room", "Default" })))
@@ -28,10 +23,6 @@ namespace BlackMesa.Components
                 gameObject.SetActive(false);
                 return;
             }
-
-            Debug.Log($"tripmine: {transform.position}");
-            Debug.Log($"raycast hit: {hit.point}");
-            Debug.Log($"Raycast Distance: {hit.distance / transform.lossyScale.y}");
 
             float distanceToWall = hit.distance / transform.lossyScale.y;
             float halfDistance = distanceToWall / 2f;
