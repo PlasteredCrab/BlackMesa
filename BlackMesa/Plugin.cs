@@ -2,6 +2,7 @@
 using BepInEx.Logging;
 using BlackMesa.Components;
 using BlackMesa.Patches;
+using DunGen.Graph;
 using HarmonyLib;
 using LethalLevelLoader;
 using System;
@@ -46,12 +47,15 @@ namespace BlackMesa
                 return;
             }
 
+            BlackMesaFlow = blackMesaExtendedDungeon.DungeonFlow;
+
             // Register the Extended Dungeon Flow with LLL.
             PatchedContent.RegisterExtendedDungeonFlow(blackMesaExtendedDungeon);
             Logger.LogInfo("Loaded Extended DungeonFlow.");
 
             // Apply patches.
             harmony.PatchAll(typeof(PatchStartOfRound));
+            harmony.PatchAll(typeof(PatchRoundManager));
             harmony.PatchAll(typeof(PatchNetworkManager));
 
             RegisterNetworkBehaviour(typeof(Tripmine), blackMesaAssets.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props/Tripmine.prefab"));
@@ -67,6 +71,8 @@ namespace BlackMesa
 
         // Logger instance for logging messages and debugging information  
         new internal static ManualLogSource Logger;
+
+        internal static DungeonFlow BlackMesaFlow;
 
         private static void RegisterNetworkBehaviour(Type type, GameObject prefab)
         {
