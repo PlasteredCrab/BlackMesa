@@ -1,7 +1,7 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using UnityEngine;
 
-namespace BlackMesa;
+namespace BlackMesa.Utilities;
 
 internal static class BetterExplosion
 {

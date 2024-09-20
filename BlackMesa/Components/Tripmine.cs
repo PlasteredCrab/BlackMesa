@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Unity.Netcode;
+using BlackMesa.Utilities;
 
 namespace BlackMesa.Components
 {
