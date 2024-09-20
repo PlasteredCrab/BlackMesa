@@ -1,7 +1,10 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
+using BlackMesa.Components;
+using BlackMesa.Patches;
 using HarmonyLib;
 using LethalLevelLoader;
+using System;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
@@ -49,6 +52,9 @@ namespace BlackMesa
 
             // Apply patches.
             harmony.PatchAll(typeof(PatchStartOfRound));
+            harmony.PatchAll(typeof(PatchNetworkManager));
+
+            RegisterNetworkBehaviour(typeof(Tripmine), blackMesaAssets.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props/Tripmine.prefab"));
         }
 
         // variables that are called throughout the script
@@ -60,7 +66,13 @@ namespace BlackMesa
         public static BlackMesaInterior Instance;
 
         // Logger instance for logging messages and debugging information  
-        new internal static ManualLogSource Logger;    
+        new internal static ManualLogSource Logger;
+
+        private static void RegisterNetworkBehaviour(Type type, GameObject prefab)
+        {
+            type.GetMethod("InitializeRPCS_" + type.Name, BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+            PatchNetworkManager.AddNetworkPrefab(prefab);
+        }
     }
 
 }

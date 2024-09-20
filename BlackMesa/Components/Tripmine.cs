@@ -1,8 +1,9 @@
-using UnityEngine;
+﻿using UnityEngine;
+using Unity.Netcode;
 
 namespace BlackMesa.Components
 {
-    internal class Tripmine : MonoBehaviour
+    internal class Tripmine : NetworkBehaviour
     {
         public LineRenderer laserRenderer;
         public BoxCollider laserCollider;
@@ -43,17 +44,30 @@ namespace BlackMesa.Components
 
         private void OnTriggerEnter(Collider other)
         {
-            if (((1 << other.gameObject.layer) & playerLayer) != 0)
-            {
-                TriggerExplosion();
-            }
+            if (other.CompareTag("Player"))
+                TriggerExplosionServerRpc();
         }
 
-        public void TriggerExplosion()
+        [ServerRpc(RequireOwnership = false)]
+        public void TriggerExplosionServerRpc()
         {
+            BlackMesaInterior.Logger.LogInfo("TriggerExplosionServerRpc");
+            TriggerExplosionClientRpc();
+        }
+
+        [ClientRpc]
+        public void TriggerExplosionClientRpc()
+        {
+            BlackMesaInterior.Logger.LogInfo("TriggerExplosionClientRpc");
+            Explode();
+        }
+
+        private void Explode()
+        {
+            BlackMesaInterior.Logger.LogInfo("Explode");
             BetterExplosion.SpawnExplosion(transform.position, killRadius, hurtRadius, 90);
 
-            Destroy(gameObject);
+            gameObject.SetActive(false);
         }
 
         private void OnDrawGizmosSelected()

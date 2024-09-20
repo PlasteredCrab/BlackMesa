@@ -37,7 +37,7 @@
       <Reference Include="Unity.Netcode.Components" Private="false">
         <HintPath>..\..\Libraries\Unity.Netcode.Components.dll</HintPath>
       </Reference>
-      <Reference Include="Unity.Netcode.Runtime" Private="false">
+      <Reference Include="Unity.Netcode.Runtime" Publicize="true" Private="false">
         <HintPath>..\..\Libraries\Unity.Netcode.Runtime.dll</HintPath>
       </Reference>
       <Reference Include="Unity.Networking.Transport" Private="false">
@@ -50,4 +50,8 @@
         <HintPath>..\..\Libraries\UnityEngine.CoreModule.dll</HintPath>
       </Reference>
     </ItemGroup>
+
+    <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">
+        <Exec Command="netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
+    </Target>
 </Project>
