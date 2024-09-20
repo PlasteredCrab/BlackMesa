@@ -1,3 +1,4 @@
+﻿using BlackMesa.Components;
 using GameNetcodeStuff;
 using UnityEngine;
 
@@ -16,7 +17,8 @@ internal static class BetterExplosion
         const int mapHazardsLayer = 21;
         const int dealDamageToLayers = (1 << playersLayer) | (1 << enemiesLayer) | (1 << mapHazardsLayer);
 
-        GameObject explosionPrefab = Object.Instantiate(StartOfRound.Instance.explosionPrefab, explosionPosition, Quaternion.Euler(-90f, 0f, 0f), RoundManager.Instance.mapPropsContainer.transform);
+        GameObject explosionPrefab = Object.Instantiate(StartOfRound.Instance.explosionPrefab, explosionPosition, Quaternion.Euler(-90f, 0f, 0f));
+        explosionPrefab.AddComponent<DelayedDestruction>();
         explosionPrefab.SetActive(value: true);
 
         float cameraDistance = Vector3.Distance(GameNetworkManager.Instance.localPlayerController.gameplayCamera.transform.position, explosionPosition);
