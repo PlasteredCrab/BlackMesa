@@ -1,5 +1,4 @@
-﻿using BepInEx;
-using BepInEx.Configuration;
+using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using LethalLevelLoader;
