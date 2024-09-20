@@ -1,5 +1,7 @@
 using BlackMesa.Utilities;
 using System;
+using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace BlackMesa
@@ -28,27 +30,34 @@ namespace BlackMesa
             SecurityCameraManager.Instance.AssignHandheldTVFeed(this, onMaterial);
         }
 
-        public void DestroyTv()
+        public void ExplodeAfterDelay()
         {
-            if (playerHeldBy != null)
-            {
-                if (playerHeldBy.IsOwner)
-                {
-                    int itemSlot = Array.IndexOf(playerHeldBy.ItemSlots, this);
-                    playerHeldBy.DestroyItemInSlotAndSync(itemSlot);
-                }
+            if (!IsServer)
                 return;
-            }
-
-            if (IsServer)
-                NetworkObject.Despawn();
+            StartCoroutine(ExplodeAfterDelayCoroutine());
         }
 
-        public override void OnDestroy()
+        private IEnumerator ExplodeAfterDelayCoroutine()
+        {
+            yield return new WaitForSeconds(1);
+            ExplodeClientRPC();
+        }
+
+        [ClientRpc]
+        public void ExplodeClientRPC()
         {
             BetterExplosion.SpawnExplosion(transform.position, 1, 2, 90);
 
-            base.OnDestroy();
+            if (playerHeldBy != null)
+            {
+                int itemSlot = Array.IndexOf(playerHeldBy.ItemSlots, this);
+                playerHeldBy.DestroyItemInSlot(itemSlot);
+                return;
+            }
+
+            if (!IsServer)
+                return;
+            NetworkObject.Despawn();
         }
 
         public override void LateUpdate()

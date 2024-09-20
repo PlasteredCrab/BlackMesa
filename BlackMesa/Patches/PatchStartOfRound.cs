@@ -12,7 +12,7 @@ namespace BlackMesa.Patches
         {
             var handheldTVs = Object.FindObjectsByType<HandheldTVCamera>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             foreach (var handheldTV in handheldTVs)
-                handheldTV.DestroyTv();
+                handheldTV.ExplodeAfterDelay();
         }
     }
 }

@@ -58,6 +58,7 @@ namespace BlackMesa
             harmony.PatchAll(typeof(PatchRoundManager));
             harmony.PatchAll(typeof(PatchNetworkManager));
 
+            RegisterNetworkBehaviour(typeof(HandheldTVCamera));
             RegisterNetworkBehaviour(typeof(Tripmine), blackMesaAssets.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props/Tripmine.prefab"));
         }
 
@@ -74,10 +75,11 @@ namespace BlackMesa
 
         internal static DungeonFlow BlackMesaFlow;
 
-        private static void RegisterNetworkBehaviour(Type type, GameObject prefab)
+        private static void RegisterNetworkBehaviour(Type type, GameObject prefab = null)
         {
             type.GetMethod("InitializeRPCS_" + type.Name, BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
-            PatchNetworkManager.AddNetworkPrefab(prefab);
+            if (prefab != null)
+                PatchNetworkManager.AddNetworkPrefab(prefab);
         }
     }
 
