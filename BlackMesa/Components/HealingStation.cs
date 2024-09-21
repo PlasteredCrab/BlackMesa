@@ -16,22 +16,10 @@ public class HealingStation : NetworkBehaviour
     private float healthPerSecond = 10f;
     private float healthRemainder = 0f;
 
-    private PlayerControllerB player;
-
-    private void Start()
+    public void OnPlayerInteract()
     {
-        // Ensure the trigger calls healing function
-        triggerScript.onInteract.AddListener(OnPlayerInteract);
-    }
-
-    public void OnPlayerInteract(PlayerControllerB playerToHeal)
-    {
-        // Start healing if the player is not at full health
-        if (playerToHeal != null && playerToHeal.health < 100)
-        {
-            player = playerToHeal;
+        if (GameNetworkManager.Instance.localPlayerController.health < 100)
             StartHealingPlayer();
-        }
     }
 
     // Initiate healing sequence
@@ -46,7 +34,10 @@ public class HealingStation : NetworkBehaviour
 
     private void Update()
     {
-        if (!isHealing || player == null) return;
+        if (!isHealing)
+            return;
+
+        var player = GameNetworkManager.Instance.localPlayerController;
 
         float healAmount = healthPerSecond * Time.deltaTime + healthRemainder;
         healthRemainder = healAmount % 1;
