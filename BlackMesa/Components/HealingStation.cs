@@ -1,22 +1,22 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
 
 public class HealingStation : NetworkBehaviour
 {
-    public InteractTrigger triggerScript;  // Reference to the InteractTrigger
-    public AudioSource healAudio;          // Healing audio (2 seconds)
-    public Animator healingStationAnimator; // Animator for healing effects
+    public InteractTrigger triggerScript;
+    public AudioSource healAudio;
+    public Animator healingStationAnimator;
 
-    private bool isHealing = false;        // Is the healing in progress
-    private float healingStartTime;        // Time when healing starts
+    private bool isHealing = false;
+    private float healingStartTime;
 
-    private float lastHealthUpdate = 0f;   // Track health update time
-    private float updateInterval = 0.1f;   // Update interval for health UI
-    private float healthPerSecond = 10f;   // Healing rate
-    private float healthRemainder = 0f;    // Fractional health remainder
+    private float lastHealthUpdate = 0f;
+    private float updateInterval = 0.1f;
+    private float healthPerSecond = 10f;
+    private float healthRemainder = 0f;
 
-    private PlayerControllerB player;       // The player being healed
+    private PlayerControllerB player;
 
     private void Start()
     {
