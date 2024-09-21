@@ -1,94 +1,75 @@
 ﻿using GameNetcodeStuff;
-using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
-namespace BlackMesa.Components;
-
 public class HealingStation : NetworkBehaviour
 {
-    /*public InteractTrigger triggerScript;
+    public InteractTrigger triggerScript;  // Reference to the InteractTrigger
+    public AudioSource healAudio;          // Healing audio (2 seconds)
+    public Animator healingStationAnimator; // Animator for healing effects
 
-    public Animator healingStationAnimator;
+    private bool isHealing = false;        // Is the healing in progress
+    private float healingStartTime;        // Time when healing starts
 
-    private Coroutine healPlayerCoroutine;
+    private float lastHealthUpdate = 0f;   // Track health update time
+    private float updateInterval = 0.1f;   // Update interval for health UI
+    private float healthPerSecond = 10f;   // Healing rate
+    private float healthRemainder = 0f;    // Fractional health remainder
 
-    public AudioSource healAudio;
+    private PlayerControllerB player;       // The player being healed
 
-    private float updateInterval;
-
-    public void HealPlayer()
+    private void Start()
     {
-        PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
+        // Ensure the trigger calls healing function
+        triggerScript.onInteract.AddListener(OnPlayerInteract);
+    }
 
-        // Check if the player needs healing and is interacting with the station
-        if (localPlayer != null && localPlayer.health < localPlayer.maxHealth)
+    public void OnPlayerInteract(PlayerControllerB playerToHeal)
+    {
+        // Start healing if the player is not at full health
+        if (playerToHeal != null && playerToHeal.health < 100)
         {
-            PlayHealPlayerEffectServerRpc((int)localPlayer.playerClientId);
-            if (healPlayerCoroutine != null)
-            {
-                StopCoroutine(healPlayerCoroutine);
-            }
-            healPlayerCoroutine = StartCoroutine(HealPlayerDelayed(localPlayer));
+            player = playerToHeal;
+            StartHealingPlayer();
         }
+    }
+
+    // Initiate healing sequence
+    public void StartHealingPlayer()
+    {
+        healingStartTime = Time.time;
+        isHealing = true;
+
+        healAudio.Play();  // Play healing audio (2 seconds)
+        healingStationAnimator.SetTrigger("heal"); // Start healing animation
     }
 
     private void Update()
     {
-        if (NetworkManager.Singleton == null)
+        if (!isHealing || player == null) return;
+
+        float healAmount = healthPerSecond * Time.deltaTime + healthRemainder;
+        healthRemainder = healAmount % 1;
+        player.health += (int)healAmount;
+
+        bool healCompleted = false;
+
+        if (player.health >= 100)
         {
-            return;
+            player.health = 100;
+            healCompleted = true;
         }
 
-        if (updateInterval > 1f)
+        if (player.IsOwner && (healCompleted || Time.time - lastHealthUpdate > updateInterval))
         {
-            updateInterval = 0f;
-
-            if (GameNetworkManager.Instance != null && GameNetworkManager.Instance.localPlayerController != null)
-            {
-                // Check if the player can interact (i.e. the player has less than full health)
-                triggerScript.interactable = GameNetworkManager.Instance.localPlayerController.health < GameNetworkManager.Instance.localPlayerController.maxHealth;
-            }
+            player.DamagePlayerServerRpc(damageNumber: 0, player.health);
+            HUDManager.Instance.UpdateHealthUI(player.health, hurtPlayer: false);
+            lastHealthUpdate = Time.time;
         }
-        else
+
+        if (Time.time - healingStartTime >= 2f || healCompleted)
         {
-            updateInterval += Time.deltaTime;
-        }
-    }
-
-    private IEnumerator HealPlayerDelayed(PlayerController playerToHeal)
-    {
-        healAudio.Play(); // Play healing audio effect
-        yield return new WaitForSeconds(0.75f); // Delay for the heal effect
-
-        healingStationAnimator.SetTrigger("heal"); // Trigger healing animation
-
-        // Check if the player is still in range and needs healing
-        if (playerToHeal != null)
-        {
-            playerToHeal.Heal(25); // Heal the player by 25 health points or any amount you'd like
-            playerToHeal.SyncHealthServerRpc(playerToHeal.health); // Sync the player's health across the network
+            isHealing = false;  // End the healing process after 2 seconds
         }
     }
-
-    [ServerRpc(RequireOwnership = false)]
-    public void PlayHealPlayerEffectServerRpc(int playerHealing)
-    {
-        PlayHealPlayerEffectClientRpc(playerHealing);
-    }
-
-    [ClientRpc]
-    public void PlayHealPlayerEffectClientRpc(int playerHealing)
-    {
-        // If this player isn't the one currently being healed, play the heal effect on their end too
-        if (GameNetworkManager.Instance.localPlayerController != null && (int)GameNetworkManager.Instance.localPlayerController.playerClientId != playerHealing)
-        {
-            if (healPlayerCoroutine != null)
-            {
-                StopCoroutine(healPlayerCoroutine);
-            }
-            healPlayerCoroutine = StartCoroutine(HealPlayerDelayed(null)); // Simulate the healing effect on other clients
-        }
-    }*/
 }
-
