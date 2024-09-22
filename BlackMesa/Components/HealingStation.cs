@@ -1,71 +1,52 @@
-using GameNetcodeStuff;
+﻿using GameNetcodeStuff;
 using System;
 using Unity.Netcode;
 using UnityEngine;
 
 public class HealingStation : NetworkBehaviour
 {
-    public InteractTrigger triggerScript;  // Reference to the InteractTrigger
-    public AudioSource healAudio;          // Healing audio (2 seconds)
-    public Animator healingStationAnimator; // Animator for healing effects
+    public InteractTrigger triggerScript;
 
-    public float maxHealingCapacity = 100f; // Maximum healing capacity for the machine
-    private float currentHealingCapacity;   // Tracks the remaining healing capacity
+    public AudioSource healAudio;
+    public Animator healingStationAnimator;
 
-    private bool isHealing = false;         // Is the healing in progress
-    private bool isHolding = false;         // Is the player holding the interaction button
-    private float healingStartTime;         // Time when healing starts
+    public int maxHealingCapacity = 100;
+    private int remainingHealingCapacity;
 
-    private float lastHealthUpdate = 0f;    // Track health update time
-    private float updateInterval = 0.1f;    // Update interval for health UI
-    private float healthPerSecond = 10f;    // Healing rate
-    private float healthRemainder = 0f;     // Fractional health remainder
+    private PlayerControllerB localPlayer;
+    private int maximumPlayerHealth;
 
-    private PlayerControllerB player;       // The player being healed
+    private bool isHealing = false;
+    private float healingStartTime;
+
+    private float healthPerSecond = 10f;
+    private float healthRemainder = 0f;
+
+    private float lastServerHealthUpdate = 0f;
+    private float serverHealthUpdateInterval = 0.25f;
 
     private void Start()
     {
-        // Initialize the healing capacity
-        currentHealingCapacity = maxHealingCapacity;
+        remainingHealingCapacity = maxHealingCapacity;
+
+        localPlayer = GameNetworkManager.Instance.localPlayerController;
+        maximumPlayerHealth = localPlayer.health;
+
+        triggerScript.onInteractEarly.RemoveAllListeners();
+        triggerScript.onInteract.RemoveAllListeners();
+        triggerScript.onStopInteract.RemoveAllListeners();
+        triggerScript.onCancelAnimation.RemoveAllListeners();
+
+        triggerScript.onInteractEarly.AddListener(OnPlayerInteract);
 
         ((IHittable)GameNetworkManager.Instance.localPlayerController).Hit(4, Vector3.zero, GameNetworkManager.Instance.localPlayerController);
     }
 
-    // Called while the player is holding the interaction button
-    public void OnHoldingInteract()
+    public void OnPlayerInteract(PlayerControllerB _)
     {
-        // Check if the player is the owner and the interaction button is being held
-        if (!isHolding)
-        {
-            isHolding = true;
-            OnPlayerInteract();
-        }
-    }
-
-    // Called when the player stops holding the interaction button
-    public void OnStopHoldingInteract()
-    {
-        // Stop healing if the player releases the button
-        isHolding = false;
-        isHealing = false;
-        healAudio.Stop();  // Stop the healing audio
-        Debug.Log("Healing interrupted by player.");
-    }
-
-    public void OnPlayerInteract()
-    {
-        // Get the local player controller
-        player = GameNetworkManager.Instance.localPlayerController;
-
         // Check if the machine still has capacity and if the player needs healing
-        if (currentHealingCapacity > 0 && player != null && player.health < 100)
-        {
+        if (remainingHealingCapacity > 0 && localPlayer.health < maximumPlayerHealth)
             StartHealingPlayer();
-        }
-        else
-        {
-            Debug.Log("Healing station is out of capacity or player does not need healing.");
-        }
     }
 
     // Initiate healing sequence
@@ -80,50 +61,44 @@ public class HealingStation : NetworkBehaviour
 
     private void Update()
     {
-        if (!isHealing || !isHolding || player == null) return;
+        if (!isHealing)
+            return;
 
-        // Calculate healing amount based on deltaTime and healthPerSecond
+        // Calculate healing amount based on deltaTime and healthPerSecond.
         float healAmount = healthPerSecond * Time.deltaTime + healthRemainder;
-
-        // Ensure we don't heal more than the remaining capacity
-        if (healAmount > currentHealingCapacity)
-        {
-            healAmount = currentHealingCapacity;  // Limit healing to available capacity
-        }
-
-        healthRemainder = healAmount % 1; // Save the fractional remainder
-        player.health += (int)healAmount; // Add only the integer portion to health
-        currentHealingCapacity -= (int)healAmount; // Reduce the machine's capacity
+        healAmount = Math.Min(healAmount, remainingHealingCapacity);
 
         bool healCompleted = false;
+        var originalHealth = localPlayer.health;
 
-        // Cap the player's health at 100
-        if (player.health >= 100)
+        // Add the integer portion of the healing amount and save the remainder.
+        healthRemainder = healAmount % 1;
+        localPlayer.health += (int)healAmount;
+
+        // Cap the player's health at 100.
+        if (localPlayer.health >= maximumPlayerHealth)
         {
-            player.health = 100;
+            localPlayer.health = maximumPlayerHealth;
             healCompleted = true;
         }
 
-        // If the player is the owner and healing has completed or the update interval has passed
-        if (player.IsOwner && (healCompleted || Time.time - lastHealthUpdate > updateInterval))
+        HUDManager.Instance.UpdateHealthUI(localPlayer.health, hurtPlayer: false);
+
+        remainingHealingCapacity -= localPlayer.health - originalHealth;
+        if (remainingHealingCapacity < 0)
+            remainingHealingCapacity = 0;
+
+        // Ensure that all clients see the health modification on an interval and after healing ends.
+        if (healCompleted || Time.time - lastServerHealthUpdate > serverHealthUpdateInterval)
         {
-            player.DamagePlayerServerRpc(damageNumber: 0, player.health);  // Sync health to server
-            HUDManager.Instance.UpdateHealthUI(player.health, hurtPlayer: false);  // Update local health UI
-            lastHealthUpdate = Time.time;  // Reset last update time
+            localPlayer.DamagePlayerServerRpc(damageNumber: 0, localPlayer.health);
+            lastServerHealthUpdate = Time.time;
         }
 
-        // End the healing process after 2 seconds or when healing is complete
         if (Time.time - healingStartTime >= 2f || healCompleted)
         {
-            isHealing = false;  // End the healing process
-            healAudio.Stop();   // Stop the healing audio
-        }
-
-        // Check if the machine is out of healing capacity
-        if (currentHealingCapacity <= 0)
-        {
-            currentHealingCapacity = 0;  // Ensure capacity doesn't go negative
-            Debug.Log("Healing station is out of healing capacity.");
+            isHealing = false;
+            healAudio.Stop();
         }
     }
 }
