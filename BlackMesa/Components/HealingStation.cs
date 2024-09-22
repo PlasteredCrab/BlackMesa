@@ -27,22 +27,13 @@ public class HealingStation : NetworkBehaviour
     {
         // Initialize the healing capacity
         currentHealingCapacity = maxHealingCapacity;
-
-        // Ensure the trigger calls healing function
-        triggerScript.holdingInteractEvent.AddListener(OnHoldingInteract);
-        triggerScript.onStopInteract.AddListener(OnStopHoldingInteract);
-    }
-
-    private void OnStopHoldingInteract(PlayerControllerB arg0)
-    {
-        throw new NotImplementedException();
     }
 
     // Called while the player is holding the interaction button
-    public void OnHoldingInteract(float holdAmount)
+    public void OnHoldingInteract()
     {
         // Check if the player is the owner and the interaction button is being held
-        if (!isHolding && holdAmount > 0)
+        if (!isHolding)
         {
             isHolding = true;
             OnPlayerInteract();
