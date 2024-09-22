@@ -1,4 +1,4 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using System;
 using Unity.Netcode;
 using UnityEngine;
@@ -27,6 +27,8 @@ public class HealingStation : NetworkBehaviour
     {
         // Initialize the healing capacity
         currentHealingCapacity = maxHealingCapacity;
+
+        ((IHittable)GameNetworkManager.Instance.localPlayerController).Hit(4, Vector3.zero, GameNetworkManager.Instance.localPlayerController);
     }
 
     // Called while the player is holding the interaction button
