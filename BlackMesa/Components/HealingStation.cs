@@ -1,7 +1,9 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using System;
 using Unity.Netcode;
 using UnityEngine;
+
+namespace BlackMesa.Components;
 
 public class HealingStation : NetworkBehaviour
 {
