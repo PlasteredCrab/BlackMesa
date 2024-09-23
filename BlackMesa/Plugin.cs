@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Logging;
 using BlackMesa.Components;
 using BlackMesa.Patches;
@@ -61,8 +61,6 @@ namespace BlackMesa
             RegisterNetworkBehaviour(typeof(HandheldTVCamera));
             RegisterNetworkBehaviour(typeof(Tripmine), blackMesaAssets.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props/Tripmine.prefab"));
         }
-
-        // variables that are called throughout the script
 
         // Harmony instance used for patching methods in the game
         private readonly Harmony harmony = new(GUID);
