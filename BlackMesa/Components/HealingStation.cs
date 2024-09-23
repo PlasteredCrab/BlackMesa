@@ -24,7 +24,6 @@ public class HealingStation : NetworkBehaviour
     private int remainingHealingCapacity;
 
     private int maximumPlayerHealth;
-    private float playerAnimationStopPoint = 0.5f;
 
     private bool isHealing = false;
 
