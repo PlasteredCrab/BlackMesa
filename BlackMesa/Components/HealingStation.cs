@@ -46,10 +46,6 @@ public class HealingStation : NetworkBehaviour
         maximumPlayerHealth = GameNetworkManager.Instance.localPlayerController.health;
 
         interactAction = IngamePlayerSettings.Instance.playerInput.actions.FindAction("Interact");
-
-        ((IHittable)GameNetworkManager.Instance.localPlayerController).Hit(4, Vector3.zero, GameNetworkManager.Instance.localPlayerController);
-        ((IHittable)GameNetworkManager.Instance.localPlayerController).Hit(4, Vector3.zero, GameNetworkManager.Instance.localPlayerController);
-        ((IHittable)GameNetworkManager.Instance.localPlayerController).Hit(4, Vector3.zero, GameNetworkManager.Instance.localPlayerController);
     }
 
     private void SetAnimationState(AnimationState state)
@@ -58,24 +54,52 @@ public class HealingStation : NetworkBehaviour
         stateStartTime = Time.time;
     }
 
+    // Handles the InteractTrigger.onInteractEarly event
     public void StartHealingLocalPlayer()
     {
         isHealing = true;
-        StartAnimation(GameNetworkManager.Instance.localPlayerController);
+        playerInteracting = GameNetworkManager.Instance.localPlayerController;
+        StartAnimationState();
     }
 
+    // Handles the InteractTrigger.onInteractEarlyOtherClients event
     public void StartAnimation(PlayerControllerB player)
     {
+        if (player == GameNetworkManager.Instance.localPlayerController)
+            return;
         playerInteracting = player;
-        SetAnimationState(AnimationState.Healing);
+        StartAnimationState();
+    }
 
+    private void StartAnimationState()
+    {
+        SetAnimationState(AnimationState.Healing);
         healAudio.Play();
         healingStationAnimator.SetTrigger("heal");
-        BlackMesaInterior.Logger.LogInfo($"Started healing animation on {player}");
+    }
+
+    private void UpdateInteractability()
+    {
+        if (remainingHealingCapacity <= 0)
+        {
+            triggerScript.disabledHoverTip = "Depleted";
+            triggerScript.interactable = false;
+            return;
+        }
+        if (GameNetworkManager.Instance.localPlayerController.health >= maximumPlayerHealth)
+        {
+            triggerScript.disabledHoverTip = "Already full health";
+            triggerScript.interactable = false;
+            return;
+        }
+
+        triggerScript.interactable = true;
     }
 
     private void Update()
     {
+        UpdateInteractability();
+
         ApplyHealing();
 
         switch (state)
@@ -99,8 +123,6 @@ public class HealingStation : NetworkBehaviour
         healAmount = Math.Min(healAmount, remainingHealingCapacity);
 
         bool healEnded = !interactAction.IsPressed();
-        if (healEnded)
-            BlackMesaInterior.Logger.LogInfo($"Heal interact stopped");
 
         // Add the integer portion of the healing amount and save the remainder.
         var originalHealth = playerInteracting.health;
@@ -122,13 +144,16 @@ public class HealingStation : NetworkBehaviour
         }
 
         remainingHealingCapacity -= playerInteracting.health - originalHealth;
-        if (remainingHealingCapacity < 0)
+        if (remainingHealingCapacity <= 0)
+        {
             remainingHealingCapacity = 0;
+            healEnded = true;
+        }
 
         // Ensure that all clients see the health modification on an interval and after healing ends.
         if (healEnded || Time.time - lastServerHealthUpdate > serverHealthUpdateInterval)
         {
-            playerInteracting.DamagePlayerServerRpc(damageNumber: 0, playerInteracting.health);
+            UpdatePlayerHealthAndCapacity();
             lastServerHealthUpdate = Time.time;
         }
 
@@ -136,9 +161,32 @@ public class HealingStation : NetworkBehaviour
         {
             isHealing = false;
             healAudio.Stop();
-            BlackMesaInterior.Logger.LogInfo("Heal ended");
             StartExitingAnimationServerRpc();
         }
+    }
+
+    internal void UpdatePlayerHealthAndCapacity()
+    {
+        if (playerInteracting.IsOwner)
+            UpdatePlayerHealthServerRpc((int)playerInteracting.playerClientId, playerInteracting.health, remainingHealingCapacity);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void UpdatePlayerHealthServerRpc(int playerID, int health, int capacity)
+    {
+        UpdatePlayerHealthClientRpc(playerID, health, capacity);
+    }
+
+    [ClientRpc]
+    private void UpdatePlayerHealthClientRpc(int playerID, int health, int capacity)
+    {
+        if (isHealing)
+            return;
+
+        var player = StartOfRound.Instance.allPlayerScripts[playerID];
+        player.DamageOnOtherClients(0, health);
+
+        remainingHealingCapacity = Math.Min(capacity, remainingHealingCapacity);
     }
 
     private void DoHealingAnimationTick()
@@ -148,7 +196,6 @@ public class HealingStation : NetworkBehaviour
             return;
         if (playerInteracting.playerBodyAnimator.speed != 0)
         {
-            BlackMesaInterior.Logger.LogInfo("Animation stopped");
             playerInteracting.playerBodyAnimator.speed = 0;
         }
     }
@@ -156,14 +203,18 @@ public class HealingStation : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     internal void StartExitingAnimationServerRpc()
     {
-        BlackMesaInterior.Logger.LogInfo("StartExitingAnimationServerRpc");
+        // Start exiting immediately on the client that is interacting.
+        if (isHealing)
+            SetAnimationState(AnimationState.Exiting);
         StartExitingAnimationClientRpc();
     }
 
     [ClientRpc]
     internal void StartExitingAnimationClientRpc()
     {
-        BlackMesaInterior.Logger.LogInfo("StartExitingAnimationClientRpc");
+        // Don't reset the animation state on the client that is interacting, as ServerRpc already did this.
+        if (isHealing)
+            return;
         SetAnimationState(AnimationState.Exiting);
     }
 
@@ -172,13 +223,11 @@ public class HealingStation : NetworkBehaviour
         if (playerInteracting.playerBodyAnimator.speed != 1)
         {
             playerInteracting.playerBodyAnimator.speed = 1;
-            BlackMesaInterior.Logger.LogInfo("Animation resumed");
         }
 
         if (Time.time - stateStartTime < 1)
             return;
         triggerScript.StopSpecialAnimation();
-        BlackMesaInterior.Logger.LogInfo($"Stopped special animation");
         SetAnimationState(AnimationState.None);
     }
 }
