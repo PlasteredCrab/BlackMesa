@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.Logging;
 using BlackMesa.Components;
 using BlackMesa.Patches;
@@ -19,6 +19,14 @@ namespace BlackMesa
         public const string GUID = "Plastered_Crab.BlackMesaInterior";
         public const string NAME = "Black Mesa Interior";
         public const string VERSION = "1.1.0";
+
+        public static BlackMesaInterior Instance;
+
+        private readonly Harmony harmony = new(GUID);
+
+        new internal static ManualLogSource Logger;
+
+        internal static DungeonFlow BlackMesaFlow;
 
         // Awake method is called before the Menu Screen initialization
         private void Awake()
@@ -62,17 +70,6 @@ namespace BlackMesa
             RegisterNetworkBehaviour(typeof(Tripmine), blackMesaAssets.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props/Tripmine.prefab"));
             RegisterNetworkBehaviour(typeof(HealingStation), blackMesaAssets.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props/Healing Station.prefab"));
         }
-
-        // Harmony instance used for patching methods in the game
-        private readonly Harmony harmony = new(GUID);
-
-        // Singleton instance of the BlackMesaInterior class
-        public static BlackMesaInterior Instance;
-
-        // Logger instance for logging messages and debugging information  
-        new internal static ManualLogSource Logger;
-
-        internal static DungeonFlow BlackMesaFlow;
 
         private static void RegisterNetworkBehaviour(Type type, GameObject prefab = null)
         {
