@@ -34,6 +34,9 @@
       <Reference Include="LethalLib" Private="false">
         <HintPath>..\..\Libraries\LethalLib.dll</HintPath>
       </Reference>
+      <Reference Include="Unity.InputSystem" Private="false">
+        <HintPath>..\..\Libraries\Unity.InputSystem.dll</HintPath>
+      </Reference>
       <Reference Include="Unity.Netcode.Components" Private="false">
         <HintPath>..\..\Libraries\Unity.Netcode.Components.dll</HintPath>
       </Reference>

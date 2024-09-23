@@ -1,12 +1,20 @@
-using GameNetcodeStuff;
+﻿using GameNetcodeStuff;
 using System;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace BlackMesa.Components;
 
 public class HealingStation : NetworkBehaviour
 {
+    private enum AnimationState
+    {
+        None,
+        Healing,
+        Exiting,
+    }
+
     public InteractTrigger triggerScript;
 
     public AudioSource healAudio;
@@ -15,11 +23,16 @@ public class HealingStation : NetworkBehaviour
     public int maxHealingCapacity = 100;
     private int remainingHealingCapacity;
 
-    private PlayerControllerB localPlayer;
     private int maximumPlayerHealth;
+    private float playerAnimationStopPoint = 0.5f;
 
     private bool isHealing = false;
-    private float healingStartTime;
+
+    private PlayerControllerB playerInteracting;
+    private AnimationState state = AnimationState.None;
+    private float stateStartTime;
+
+    private InputAction interactAction;
 
     private float healthPerSecond = 10f;
     private float healthRemainder = 0f;
@@ -31,37 +44,53 @@ public class HealingStation : NetworkBehaviour
     {
         remainingHealingCapacity = maxHealingCapacity;
 
-        localPlayer = GameNetworkManager.Instance.localPlayerController;
-        maximumPlayerHealth = localPlayer.health;
+        maximumPlayerHealth = GameNetworkManager.Instance.localPlayerController.health;
 
-        triggerScript.onInteractEarly.RemoveAllListeners();
-        triggerScript.onInteract.RemoveAllListeners();
-        triggerScript.onStopInteract.RemoveAllListeners();
-        triggerScript.onCancelAnimation.RemoveAllListeners();
+        interactAction = IngamePlayerSettings.Instance.playerInput.actions.FindAction("Interact");
 
-        triggerScript.onInteractEarly.AddListener(OnPlayerInteract);
-
+        ((IHittable)GameNetworkManager.Instance.localPlayerController).Hit(4, Vector3.zero, GameNetworkManager.Instance.localPlayerController);
+        ((IHittable)GameNetworkManager.Instance.localPlayerController).Hit(4, Vector3.zero, GameNetworkManager.Instance.localPlayerController);
         ((IHittable)GameNetworkManager.Instance.localPlayerController).Hit(4, Vector3.zero, GameNetworkManager.Instance.localPlayerController);
     }
 
-    public void OnPlayerInteract(PlayerControllerB _)
+    private void SetAnimationState(AnimationState state)
     {
-        // Check if the machine still has capacity and if the player needs healing
-        if (remainingHealingCapacity > 0 && localPlayer.health < maximumPlayerHealth)
-            StartHealingPlayer();
+        this.state = state;
+        stateStartTime = Time.time;
     }
 
-    // Initiate healing sequence
-    public void StartHealingPlayer()
+    public void StartHealingLocalPlayer()
     {
-        healingStartTime = Time.time;
         isHealing = true;
+        StartAnimation(GameNetworkManager.Instance.localPlayerController);
+    }
 
-        healAudio.Play();  // Play healing audio (2 seconds)
-        healingStationAnimator.SetTrigger("heal"); // Start healing animation
+    public void StartAnimation(PlayerControllerB player)
+    {
+        playerInteracting = player;
+        SetAnimationState(AnimationState.Healing);
+
+        healAudio.Play();
+        healingStationAnimator.SetTrigger("heal");
+        BlackMesaInterior.Logger.LogInfo($"Started healing animation on {player}");
     }
 
     private void Update()
+    {
+        ApplyHealing();
+
+        switch (state)
+        {
+            case AnimationState.Healing:
+                DoHealingAnimationTick();
+                break;
+            case AnimationState.Exiting:
+                DoExitingAnimationTick();
+                break;
+        }
+    }
+
+    private void ApplyHealing()
     {
         if (!isHealing)
             return;
@@ -70,37 +99,87 @@ public class HealingStation : NetworkBehaviour
         float healAmount = healthPerSecond * Time.deltaTime + healthRemainder;
         healAmount = Math.Min(healAmount, remainingHealingCapacity);
 
-        bool healCompleted = false;
-        var originalHealth = localPlayer.health;
+        bool healEnded = !interactAction.IsPressed();
+        if (healEnded)
+            BlackMesaInterior.Logger.LogInfo($"Heal interact stopped");
 
         // Add the integer portion of the healing amount and save the remainder.
+        var originalHealth = playerInteracting.health;
         healthRemainder = healAmount % 1;
-        localPlayer.health += (int)healAmount;
+        playerInteracting.health += (int)healAmount;
 
         // Cap the player's health at 100.
-        if (localPlayer.health >= maximumPlayerHealth)
+        if (playerInteracting.health >= maximumPlayerHealth)
         {
-            localPlayer.health = maximumPlayerHealth;
-            healCompleted = true;
+            playerInteracting.health = maximumPlayerHealth;
+            healEnded = true;
         }
 
-        HUDManager.Instance.UpdateHealthUI(localPlayer.health, hurtPlayer: false);
+        if (playerInteracting.health > originalHealth)
+        {
+            HUDManager.Instance.UpdateHealthUI(playerInteracting.health, hurtPlayer: false);
+            if (playerInteracting.health >= 10)
+                playerInteracting.MakeCriticallyInjured(false);
+        }
 
-        remainingHealingCapacity -= localPlayer.health - originalHealth;
+        remainingHealingCapacity -= playerInteracting.health - originalHealth;
         if (remainingHealingCapacity < 0)
             remainingHealingCapacity = 0;
 
         // Ensure that all clients see the health modification on an interval and after healing ends.
-        if (healCompleted || Time.time - lastServerHealthUpdate > serverHealthUpdateInterval)
+        if (healEnded || Time.time - lastServerHealthUpdate > serverHealthUpdateInterval)
         {
-            localPlayer.DamagePlayerServerRpc(damageNumber: 0, localPlayer.health);
+            playerInteracting.DamagePlayerServerRpc(damageNumber: 0, playerInteracting.health);
             lastServerHealthUpdate = Time.time;
         }
 
-        if (Time.time - healingStartTime >= 2f || healCompleted)
+        if (healEnded)
         {
             isHealing = false;
             healAudio.Stop();
+            BlackMesaInterior.Logger.LogInfo("Heal ended");
+            StartExitingAnimationServerRpc();
         }
+    }
+
+    private void DoHealingAnimationTick()
+    {
+        // Stop the animation after 1 second to hold the charging animation in the middle.
+        if (Time.time - stateStartTime < 1)
+            return;
+        if (playerInteracting.playerBodyAnimator.speed != 0)
+        {
+            BlackMesaInterior.Logger.LogInfo("Animation stopped");
+            playerInteracting.playerBodyAnimator.speed = 0;
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    internal void StartExitingAnimationServerRpc()
+    {
+        BlackMesaInterior.Logger.LogInfo("StartExitingAnimationServerRpc");
+        StartExitingAnimationClientRpc();
+    }
+
+    [ClientRpc]
+    internal void StartExitingAnimationClientRpc()
+    {
+        BlackMesaInterior.Logger.LogInfo("StartExitingAnimationClientRpc");
+        SetAnimationState(AnimationState.Exiting);
+    }
+
+    private void DoExitingAnimationTick()
+    {
+        if (playerInteracting.playerBodyAnimator.speed != 1)
+        {
+            playerInteracting.playerBodyAnimator.speed = 1;
+            BlackMesaInterior.Logger.LogInfo("Animation resumed");
+        }
+
+        if (Time.time - stateStartTime < 1)
+            return;
+        triggerScript.StopSpecialAnimation();
+        BlackMesaInterior.Logger.LogInfo($"Stopped special animation");
+        SetAnimationState(AnimationState.None);
     }
 }
