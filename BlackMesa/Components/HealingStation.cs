@@ -17,6 +17,7 @@ public class HealingStation : NetworkBehaviour
 
     public InteractTrigger triggerScript;
 
+    public AudioSource startupAudio;
     public AudioSource healAudio;
     public Animator healingStationAnimator;
 
