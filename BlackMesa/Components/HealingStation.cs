@@ -35,7 +35,10 @@ public class HealingStation : NetworkBehaviour
     public int maxHealingCapacity = 100;
     private int remainingHealingCapacity;
 
-    public float healingDelay = 0.5f;
+    // Animation timing
+    public float startupAudioTime = 0.25f;
+    public float healingStartTime = 0.5f;
+    public float healingAudioStartTime = 0.75f;
 
     private int maximumPlayerHealth;
 
@@ -75,7 +78,7 @@ public class HealingStation : NetworkBehaviour
     public void StartHealingLocalPlayer()
     {
         isHealing = true;
-        timeUntilHealingBegins = healingDelay;
+        timeUntilHealingBegins = healingStartTime;
         playerInteracting = GameNetworkManager.Instance.localPlayerController;
         StartAnimationState();
     }
@@ -226,16 +229,15 @@ public class HealingStation : NetworkBehaviour
 
     private void DoHealingAnimationTick()
     {
-        const float startupAudioTime = 0.25f;
         var stateTime = Time.time - stateStartTime;
 
-        if (stateTime > startupAudioTime && !flags.HasFlag(AnimationFlags.PlayedStartupAudio))
+        if (!flags.HasFlag(AnimationFlags.PlayedStartupAudio) && stateTime >= startupAudioTime)
         {
             startupAudio.Play();
             flags |= AnimationFlags.PlayedStartupAudio;
         }
 
-        if (stateTime > startupAudioTime + healingDelay && !flags.HasFlag(AnimationFlags.PlayedHealingAudio))
+        if (!flags.HasFlag(AnimationFlags.PlayedHealingAudio) && stateTime >= healingAudioStartTime)
         {
             healAudio.loop = true;
             healAudio.Play();
