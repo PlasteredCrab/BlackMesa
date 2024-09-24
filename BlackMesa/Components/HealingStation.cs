@@ -17,9 +17,9 @@ public class HealingStation : NetworkBehaviour
 
     public InteractTrigger triggerScript;
 
-    public AudioSource depletedAudio;
     public AudioSource startupAudio;
     public AudioSource healAudio;
+    public AudioSource depletedAudio;
     public Animator healingStationAnimator;
 
     public int maxHealingCapacity = 100;
