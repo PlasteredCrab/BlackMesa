@@ -156,14 +156,16 @@ public class HealingStation : NetworkBehaviour
             healEnded = true;
         }
 
-        if (playerInteracting.health > originalHealth)
+        var healthDelta = playerInteracting.health - originalHealth;
+
+        if (healthDelta > 0)
         {
             HUDManager.Instance.UpdateHealthUI(playerInteracting.health, hurtPlayer: false);
             if (playerInteracting.health >= 10)
                 playerInteracting.MakeCriticallyInjured(false);
         }
 
-        remainingHealingCapacity -= playerInteracting.health - originalHealth;
+        remainingHealingCapacity -= healthDelta;
         if (remainingHealingCapacity <= 0)
         {
             remainingHealingCapacity = 0;
