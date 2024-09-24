@@ -1,4 +1,4 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using System;
 using Unity.Netcode;
 using UnityEngine;
@@ -181,6 +181,7 @@ public class HealingStation : NetworkBehaviour
         if (healEnded)
         {
             isHealing = false;
+            healthRemainder = 0;
             StartExitingAnimationServerRpc();
         }
     }
