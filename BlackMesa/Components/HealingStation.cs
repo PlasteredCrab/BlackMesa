@@ -1,4 +1,4 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using System;
 using Unity.Netcode;
 using UnityEngine;
@@ -176,6 +176,8 @@ public class HealingStation : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void UpdatePlayerHealthServerRpc(int playerID, int health, int capacity)
     {
+        if (IsServer)
+            capacity = Math.Min(capacity, remainingHealingCapacity);
         UpdatePlayerHealthClientRpc(playerID, health, capacity);
     }
 
@@ -188,7 +190,7 @@ public class HealingStation : NetworkBehaviour
         var player = StartOfRound.Instance.allPlayerScripts[playerID];
         player.DamageOnOtherClients(0, health);
 
-        remainingHealingCapacity = Math.Min(capacity, remainingHealingCapacity);
+        remainingHealingCapacity = capacity;
     }
 
     private void DoHealingAnimationTick()
