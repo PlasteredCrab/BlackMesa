@@ -1,4 +1,4 @@
-using GameNetcodeStuff;
+﻿using GameNetcodeStuff;
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
@@ -45,7 +45,8 @@ public class HealingStation : NetworkBehaviour
     public float healingEndTime = 0.65f;
 
     public Material backlightMaterial;
-    public float backlightEmissive = 1f;
+    public float backlightEmissive = 1;
+    private float prevBacklightEmissive = 0;
     private int emissiveColorPropertyID = Shader.PropertyToID("_EmissiveColor");
 
     private int maximumPlayerHealth;
@@ -392,5 +393,13 @@ public class HealingStation : NetworkBehaviour
             return;
         triggerScript.StopSpecialAnimation();
         SetAnimationState(AnimationState.None);
+    }
+
+    private void LateUpdate()
+    {
+        if (backlightEmissive == prevBacklightEmissive)
+            return;
+        backlightMaterial.SetColor(emissiveColorPropertyID, new Color(backlightEmissive, backlightEmissive, backlightEmissive, 1));
+        prevBacklightEmissive = backlightEmissive;
     }
 }
