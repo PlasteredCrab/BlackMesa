@@ -8,7 +8,9 @@ using LethalLevelLoader;
 using System;
 using System.IO;
 using System.Reflection;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace BlackMesa
 {
@@ -66,16 +68,54 @@ namespace BlackMesa
             harmony.PatchAll(typeof(PatchRoundManager));
             harmony.PatchAll(typeof(PatchNetworkManager));
 
-            RegisterNetworkBehaviour(typeof(HandheldTVCamera));
-            RegisterNetworkBehaviour(typeof(Tripmine), blackMesaAssets.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props/Tripmine.prefab"));
-            RegisterNetworkBehaviour(typeof(HealingStation), blackMesaAssets.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props/Healing Station.prefab"));
+            const string props = "Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props";
+            RegisterNetworkBehaviour(typeof(HandheldTVCamera), blackMesaAssets.LoadAsset<GameObject>($"{props}/HandheldTV.prefab"));
+            RegisterNetworkBehaviour(typeof(Tripmine), blackMesaAssets.LoadAsset<GameObject>($"{props}/Tripmine.prefab"));
+            RegisterNetworkBehaviour(typeof(HealingStation), blackMesaAssets.LoadAsset<GameObject>($"{props}/Healing Station.prefab"));
         }
 
-        private static void RegisterNetworkBehaviour(Type type, GameObject prefab = null)
+        private static AudioMixerGroup[] mixerGroups;
+
+        private static void RegisterNetworkBehaviour(Type type, GameObject prefab)
         {
+            if (prefab == null)
+            {
+                Logger.LogError($"The prefab associated with NetworkBehaviour {type.Name} was not found");
+                return;
+            }
+            if (!prefab.TryGetComponent<NetworkObject>(out _))
+            {
+                Logger.LogError($"The prefab {prefab} associated with NetworkBehaviour {type.Name} has no NetworkObject");
+                return;
+            }
+
             type.GetMethod("InitializeRPCS_" + type.Name, BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
-            if (prefab != null)
-                PatchNetworkManager.AddNetworkPrefab(prefab);
+
+            PatchNetworkManager.AddNetworkPrefab(prefab);
+
+            if (mixerGroups == null)
+                mixerGroups = Resources.FindObjectsOfTypeAll<AudioMixerGroup>();
+
+            foreach (var audioSource in prefab.GetComponentsInChildren<AudioSource>())
+            {
+                if (audioSource.outputAudioMixerGroup == null)
+                {
+                    Logger.LogWarning($"{audioSource} on the prefab {prefab} containing NetworkBehaviour {type.Name} has a null output");
+                    continue;
+                }
+                AudioMixerGroup mixerGroup = null;
+                foreach (var candidateMixerGroup in mixerGroups)
+                {
+                    if (candidateMixerGroup.name == audioSource.outputAudioMixerGroup.name)
+                    {
+                        mixerGroup = candidateMixerGroup;
+                        break;
+                    }
+                }
+                if (mixerGroup == null)
+                    continue;
+                audioSource.outputAudioMixerGroup = mixerGroup;
+            }
         }
     }
 
