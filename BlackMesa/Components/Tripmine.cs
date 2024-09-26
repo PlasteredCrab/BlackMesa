@@ -64,14 +64,12 @@ namespace BlackMesa.Components
         [ServerRpc(RequireOwnership = false)]
         public void TriggerExplosionServerRpc()
         {
-            BlackMesaInterior.Logger.LogInfo("TriggerExplosionServerRpc");
             TriggerExplosionClientRpc();
         }
 
         [ClientRpc]
         public void TriggerExplosionClientRpc()
         {
-            BlackMesaInterior.Logger.LogInfo("TriggerExplosionClientRpc");
             Explode();
         }
 
@@ -81,7 +79,6 @@ namespace BlackMesa.Components
                 return;
             hasExplodedOnClient = true;
 
-            BlackMesaInterior.Logger.LogInfo("Explode");
             BetterExplosion.SpawnExplosion(transform.position, killRadius, hurtRadius, 90);
 
             gameObject.SetActive(false);
