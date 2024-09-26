@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Netcode;
 using BlackMesa.Utilities;
 
@@ -8,7 +8,6 @@ namespace BlackMesa.Components
     {
         public LineRenderer laserRenderer;
         public BoxCollider laserCollider;
-        public LayerMask playerLayer;
 
         public float killRadius;
         public float hurtRadius;
