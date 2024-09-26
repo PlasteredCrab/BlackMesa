@@ -1,4 +1,4 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
@@ -43,6 +43,10 @@ public class HealingStation : NetworkBehaviour
     public float healingAudioStartTime = 0.75f;
     public float healingAudioEndTime = 0.4f;
     public float healingEndTime = 0.65f;
+
+    public Material backlightMaterial;
+    public float backlightEmissive = 1f;
+    private int emissiveColorPropertyID = Shader.PropertyToID("_EmissiveColor");
 
     private int maximumPlayerHealth;
 
