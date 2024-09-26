@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.Netcode;
 using BlackMesa.Utilities;
 
@@ -9,8 +9,17 @@ namespace BlackMesa.Components
         public LineRenderer laserRenderer;
         public BoxCollider laserCollider;
 
+        public TerminalAccessibleObject terminalObject;
+        public AudioSource toggleAudio;
+        public AudioClip deactivationClip;
+        public AudioClip activationClip;
+
         public float killRadius;
         public float hurtRadius;
+
+        private bool hasExplodedOnClient = false;
+
+        private bool activated = true;
 
         private void Start()
         {
@@ -42,8 +51,12 @@ namespace BlackMesa.Components
             laserCollider.center = new Vector3(0f, -halfDistance, 0f);
         }
 
-        private void OnTriggerEnter(Collider other)
+        private void OnTriggerStay(Collider other)
         {
+            if (!activated)
+                return;
+            if (hasExplodedOnClient)
+                return;
             if (other.CompareTag("Player"))
                 TriggerExplosionServerRpc();
         }
@@ -64,10 +77,57 @@ namespace BlackMesa.Components
 
         private void Explode()
         {
+            if (hasExplodedOnClient)
+                return;
+            hasExplodedOnClient = true;
+
             BlackMesaInterior.Logger.LogInfo("Explode");
             BetterExplosion.SpawnExplosion(transform.position, killRadius, hurtRadius, 90);
 
             gameObject.SetActive(false);
+            Destroy(terminalObject);
+        }
+
+        public void SetActivated(bool activated)
+        {
+            SetActivatedOnLocalClient(activated);
+            SetActivatedServerRpc(activated);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        private void SetActivatedServerRpc(bool activated)
+        {
+            SetActivatedClientRpc(activated);
+        }
+
+        [ClientRpc]
+        private void SetActivatedClientRpc(bool activated)
+        {
+            SetActivatedOnLocalClient(activated);
+        }
+
+        private void SetActivatedOnLocalClient(bool activated)
+        {
+            if (this.activated == activated)
+                return;
+
+            this.activated = activated;
+
+            laserRenderer.enabled = activated;
+
+            PlayToggleAudio();
+        }
+
+        private void PlayToggleAudio()
+        {
+            if (toggleAudio == null)
+                return;
+
+            if (activated && activationClip != null)
+                toggleAudio.PlayOneShot(activationClip);
+
+            if (!activated && deactivationClip != null)
+                toggleAudio.PlayOneShot(deactivationClip);
         }
 
         private void OnDrawGizmosSelected()
