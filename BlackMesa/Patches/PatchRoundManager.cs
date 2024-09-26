@@ -22,6 +22,9 @@ namespace BlackMesa.Patches
             {
                 if (spawnedObject.GetComponent<GrabbableObject>() is not { } item)
                     continue;
+                // If the item doesn't have a scan node, setting the value will complain.
+                if (spawnedObject.GetComponentInChildren<ScanNodeProperties>() == null)
+                    continue;
 
                 if (item.itemProperties.isScrap && item.scrapValue == 0)
                 {
