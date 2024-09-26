@@ -52,7 +52,7 @@ public class HealingStation : NetworkBehaviour
     private PlayerControllerB playerInteracting;
     private AnimationState state = AnimationState.None;
     private float stateStartTime;
-    private AnimationFlags flags = AnimationFlags.None;
+    private AnimationFlags stateFlags = AnimationFlags.None;
 
     private InputAction interactAction;
 
@@ -77,7 +77,7 @@ public class HealingStation : NetworkBehaviour
             return;
         this.state = state;
         stateStartTime = Time.time;
-        flags = AnimationFlags.None;
+        stateFlags = AnimationFlags.None;
     }
 
     // Handles the InteractTrigger.onInteractEarly event
@@ -257,27 +257,27 @@ public class HealingStation : NetworkBehaviour
     {
         var stateTime = Time.time - stateStartTime;
 
-        if (!flags.HasFlag(AnimationFlags.PlayedStartupAudio) && stateTime >= startupAudioTime)
+        if (!stateFlags.HasFlag(AnimationFlags.PlayedStartupAudio) && stateTime >= startupAudioTime)
         {
             startupAudio.Play();
-            flags |= AnimationFlags.PlayedStartupAudio;
+            stateFlags |= AnimationFlags.PlayedStartupAudio;
         }
 
-        if (!flags.HasFlag(AnimationFlags.PlayedHealingAudio) && stateTime >= healingAudioStartTime)
+        if (!stateFlags.HasFlag(AnimationFlags.PlayedHealingAudio) && stateTime >= healingAudioStartTime)
         {
             healAudio.loop = true;
             healAudio.Play();
             healingStationAnimator.SetTrigger("heal");
-            flags |= AnimationFlags.PlayedHealingAudio;
+            stateFlags |= AnimationFlags.PlayedHealingAudio;
         }
 
         // Stop the animation after 1 second to hold the charging animation in the middle.
         if (stateTime < 1)
             return;
-        if (!flags.HasFlag(AnimationFlags.StoppedSpecialAnimation))
+        if (!stateFlags.HasFlag(AnimationFlags.StoppedSpecialAnimation))
         {
             playerInteracting.playerBodyAnimator.speed = 0;
-            flags |= AnimationFlags.StoppedSpecialAnimation;
+            stateFlags |= AnimationFlags.StoppedSpecialAnimation;
         }
     }
 
@@ -298,21 +298,21 @@ public class HealingStation : NetworkBehaviour
         healAudio.loop = false;
         if (immediate)
             healAudio.Stop();
-        flags |= AnimationFlags.StoppedHealingAudio;
+        stateFlags |= AnimationFlags.StoppedHealingAudio;
     }
 
     private void DoExitingAnimationTick()
     {
         var stateTime = Time.time - stateStartTime;
 
-        if (!flags.HasFlag(AnimationFlags.StartedSpecialAnimation))
+        if (!stateFlags.HasFlag(AnimationFlags.StartedSpecialAnimation))
         {
             healingStationAnimator.ResetTrigger("heal");
             playerInteracting.playerBodyAnimator.speed = 1;
-            flags |= AnimationFlags.StartedSpecialAnimation;
+            stateFlags |= AnimationFlags.StartedSpecialAnimation;
         }
 
-        if (!flags.HasFlag(AnimationFlags.StoppedHealingAudio) && stateTime >= healingAudioEndTime)
+        if (!stateFlags.HasFlag(AnimationFlags.StoppedHealingAudio) && stateTime >= healingAudioEndTime)
             StopHealingAudioOnClient();
 
         if (stateTime < 1)
