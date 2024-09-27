@@ -33,6 +33,10 @@ public abstract class StationBase : NetworkBehaviour
     public AudioSource activeAudio;
     public AudioSource depletedAudio;
     public Animator animator;
+    public Renderer renderer;
+
+    public int backlightMaterialIndex = 0;
+    public float backlightEmissive = 1;
 
     public int maxCapacity = 100;
 
@@ -45,8 +49,7 @@ public abstract class StationBase : NetworkBehaviour
 
     public float capacitySyncInterval = 0.25f;
 
-    public Material backlightMaterial;
-    public float backlightEmissive = 1;
+    private Material backlightMaterial;
     private float prevBacklightEmissive = 0;
     private int emissiveColorPropertyID = Shader.PropertyToID("_EmissiveColor");
 
@@ -84,6 +87,7 @@ public abstract class StationBase : NetworkBehaviour
         interactAction = IngamePlayerSettings.Instance.playerInput.actions.FindAction("Interact");
 
         prevCapacityCheckpoint = new CapacityCheckpoint(Time.time, remainingCapacity);
+        backlightMaterial = renderer.materials[backlightMaterialIndex];
     }
 
     private void SetAnimationState(AnimationState state)
