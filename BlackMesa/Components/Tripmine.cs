@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Netcode;
 using BlackMesa.Utilities;
 
@@ -57,8 +57,11 @@ namespace BlackMesa.Components
                 return;
             if (hasExplodedOnClient)
                 return;
-            if (other.CompareTag("Player"))
-                TriggerExplosionServerRpc();
+            if (!other.CompareTag("Player"))
+                return;
+
+            Explode();
+            TriggerExplosionServerRpc();
         }
 
         [ServerRpc(RequireOwnership = false)]
