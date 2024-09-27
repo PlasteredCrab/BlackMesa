@@ -12,7 +12,7 @@ public class HealingStation : NetworkBehaviour
     private enum AnimationState
     {
         None,
-        Healing,
+        Active,
         Exiting,
     }
 
@@ -21,39 +21,37 @@ public class HealingStation : NetworkBehaviour
     {
         None = 0,
         PlayedStartupAudio = 1 << 1,
-        PlayedHealingAudio = 1 << 2,
+        PlayedActiveAudio = 1 << 2,
         StoppedSpecialAnimation = 1 << 3,
         StartedSpecialAnimation = 1 << 4,
-        StoppedHealingAudio = 1 << 5,
+        StoppedActiveAudio = 1 << 5,
     }
 
     public InteractTrigger triggerScript;
 
     public AudioSource startupAudio;
-    public AudioSource healAudio;
+    public AudioSource activeAudio;
     public AudioSource depletedAudio;
-    public Animator healingStationAnimator;
+    public Animator animator;
 
-    public int maxHealingCapacity = 100;
-    private int remainingHealingCapacity;
+    public int maxCapacity = 100;
+    private int remainingCapacity;
 
     // Animation timing
     public float startupAudioTime = 0.25f;
-    public float healingStartTime = 0.5f;
-    public float healingAudioStartTime = 0.75f;
-    public float healingAudioEndTime = 0.4f;
-    public float healingEndTime = 0.65f;
+    public float activeDelayTime = 0.5f;
+    public float activeAudioStartTime = 0.75f;
+    public float activeAudioEndTime = 0.4f;
+    public float activeEndTime = 0.65f;
 
     public Material backlightMaterial;
     public float backlightEmissive = 1;
     private float prevBacklightEmissive = 0;
     private int emissiveColorPropertyID = Shader.PropertyToID("_EmissiveColor");
 
-    private int maximumPlayerHealth;
-
-    private bool isHealing = false;
-    private float timeUntilHealingBegins = 0;
-    private float timeUntilHealingEnds = 0;
+    private bool isActiveOnLocalClient = false;
+    private float timeUntilActive = 0;
+    private float timeUntilInactive = 0;
 
     private PlayerControllerB playerInteracting;
     private AnimationState state = AnimationState.None;
@@ -61,12 +59,6 @@ public class HealingStation : NetworkBehaviour
     private AnimationFlags stateFlags = AnimationFlags.None;
 
     private InputAction interactAction;
-
-    private float healthPerSecond = 10f;
-    private float healthRemainder = 0f;
-
-    private float lastServerHealthUpdate = 0f;
-    private float serverHealthUpdateInterval = 0.25f;
 
     private struct CapacityCheckpoint(float time, int capacity)
     {
@@ -79,15 +71,23 @@ public class HealingStation : NetworkBehaviour
     private float capacityInterpolationDelay;
     private bool addedInitialCheckpoint = false;
 
+    private int maximumPlayerHealth;
+
+    private float healthPerSecond = 10f;
+    private float healthRemainder = 0f;
+
+    private float lastServerHealthUpdate = 0f;
+    private float serverHealthUpdateInterval = 0.25f;
+
     private void Start()
     {
-        remainingHealingCapacity = maxHealingCapacity;
+        remainingCapacity = maxCapacity;
 
         maximumPlayerHealth = GameNetworkManager.Instance.localPlayerController.health;
 
         interactAction = IngamePlayerSettings.Instance.playerInput.actions.FindAction("Interact");
 
-        prevCapacityCheckpoint = new CapacityCheckpoint(Time.time, remainingHealingCapacity);
+        prevCapacityCheckpoint = new CapacityCheckpoint(Time.time, remainingCapacity);
     }
 
     private void SetAnimationState(AnimationState state)
@@ -100,60 +100,60 @@ public class HealingStation : NetworkBehaviour
     }
 
     // Handles the InteractTrigger.onInteractEarly event
-    public void StartHealingLocalPlayer()
+    public void SetActivatedByLocalPlayer()
     {
-        isHealing = true;
+        isActiveOnLocalClient = true;
         capacityInterpolationDelay = 1 / healthPerSecond;
 
-        StartHealingAnimationOnPlayer(GameNetworkManager.Instance.localPlayerController);
+        SetActivatedByPlayer(GameNetworkManager.Instance.localPlayerController);
     }
 
     // Handles the InteractTrigger.onInteractEarlyOtherClients event
-    public void StartAnimation(PlayerControllerB player)
+    public void SetActivatedByOtherClient(PlayerControllerB player)
     {
         if (player == GameNetworkManager.Instance.localPlayerController)
             return;
 
-        isHealing = false;
+        isActiveOnLocalClient = false;
         capacityInterpolationDelay = serverHealthUpdateInterval;
-        StartHealingAnimationOnPlayer(player);
+        SetActivatedByPlayer(player);
     }
 
-    private void StartHealingAnimationOnPlayer(PlayerControllerB player)
+    private void SetActivatedByPlayer(PlayerControllerB player)
     {
-        timeUntilHealingBegins = healingStartTime;
-        timeUntilHealingEnds = float.PositiveInfinity;
+        timeUntilActive = activeDelayTime;
+        timeUntilInactive = float.PositiveInfinity;
 
         playerInteracting = player;
 
-        SetAnimationState(AnimationState.Healing);
+        SetAnimationState(AnimationState.Active);
 
         addedInitialCheckpoint = false;
     }
 
-    private bool HealingHasBegun()
+    private bool HasFinishedActivating()
     {
-        return timeUntilHealingBegins <= 0;
+        return timeUntilActive <= 0;
     }
 
     private void Update()
     {
         UpdateInteractability();
 
-        timeUntilHealingBegins -= Time.deltaTime;
+        timeUntilActive -= Time.deltaTime;
 
-        if (state != AnimationState.None && !addedInitialCheckpoint && HealingHasBegun())
+        if (state != AnimationState.None && !addedInitialCheckpoint && HasFinishedActivating())
         {
-            capacityInterpolationQueue.Enqueue(new CapacityCheckpoint(Time.time, remainingHealingCapacity));
+            capacityInterpolationQueue.Enqueue(new CapacityCheckpoint(Time.time, remainingCapacity));
             addedInitialCheckpoint = true;
         }
 
-        ApplyHealing();
+        TickIfActive();
 
         switch (state)
         {
-            case AnimationState.Healing:
-                DoHealingAnimationTick();
+            case AnimationState.Active:
+                DoActiveAnimationTick();
                 break;
             case AnimationState.Exiting:
                 DoExitingAnimationTick();
@@ -165,7 +165,7 @@ public class HealingStation : NetworkBehaviour
 
     private void UpdateInteractability()
     {
-        if (remainingHealingCapacity <= 0)
+        if (remainingCapacity <= 0)
         {
             triggerScript.disabledHoverTip = "Depleted";
             triggerScript.interactable = false;
@@ -181,34 +181,34 @@ public class HealingStation : NetworkBehaviour
         triggerScript.interactable = true;
     }
 
-    private void ApplyHealing()
+    private void TickIfActive()
     {
-        if (!isHealing)
+        if (!isActiveOnLocalClient)
             return;
 
-        if (!HealingHasBegun())
+        if (!HasFinishedActivating())
             return;
 
         // Calculate healing amount based on deltaTime and healthPerSecond.
         float healAmount = healthPerSecond * Time.deltaTime + healthRemainder;
-        healAmount = Math.Min(healAmount, remainingHealingCapacity);
+        healAmount = Math.Min(healAmount, remainingCapacity);
 
-        bool healEnded = false;
+        bool deactivate = false;
 
         // Delay exiting heal to give time for the hand to pull away.
-        if (timeUntilHealingEnds == float.PositiveInfinity)
+        if (timeUntilInactive == float.PositiveInfinity)
         {
             if (!interactAction.IsPressed())
             {
-                timeUntilHealingEnds = healingEndTime;
+                timeUntilInactive = activeEndTime;
                 StartExitingAnimationServerRpc();
             }
         }
         else
         {
-            timeUntilHealingEnds -= Time.deltaTime;
-            if (timeUntilHealingEnds < 0)
-                healEnded = true;
+            timeUntilInactive -= Time.deltaTime;
+            if (timeUntilInactive < 0)
+                deactivate = true;
         }
 
         // Add the integer portion of the healing amount and save the remainder.
@@ -220,7 +220,7 @@ public class HealingStation : NetworkBehaviour
         if (playerInteracting.health >= maximumPlayerHealth)
         {
             playerInteracting.health = maximumPlayerHealth;
-            healEnded = true;
+            deactivate = true;
             StartExitingAnimationServerRpc();
         }
 
@@ -233,27 +233,27 @@ public class HealingStation : NetworkBehaviour
                 playerInteracting.MakeCriticallyInjured(false);
         }
 
-        var newHealingCapacity = remainingHealingCapacity - healthDelta;
-        if (newHealingCapacity <= 0)
+        var newCapacity = remainingCapacity - healthDelta;
+        if (newCapacity <= 0)
         {
-            newHealingCapacity = 0;
-            healEnded = true;
+            newCapacity = 0;
+            deactivate = true;
             StartExitingAnimationServerRpc();
         }
 
         // Handle capacity changing on the local client every frame to update the animation.
-        SetHealingCapacity(newHealingCapacity);
+        SetCapacityOnLocalClient(newCapacity);
 
         // Ensure that all other clients see the health modification on an interval and after healing ends.
-        if (healEnded || Time.time - lastServerHealthUpdate > serverHealthUpdateInterval)
+        if (deactivate || Time.time - lastServerHealthUpdate > serverHealthUpdateInterval)
         {
             UpdatePlayerHealthAndCapacity();
             lastServerHealthUpdate = Time.time;
         }
 
-        if (healEnded)
+        if (deactivate)
         {
-            isHealing = false;
+            isActiveOnLocalClient = false;
             healthRemainder = 0;
         }
     }
@@ -261,14 +261,14 @@ public class HealingStation : NetworkBehaviour
     internal void UpdatePlayerHealthAndCapacity()
     {
         if (playerInteracting.IsOwner)
-            UpdatePlayerHealthServerRpc((int)playerInteracting.playerClientId, playerInteracting.health, playerInteracting.health >= maximumPlayerHealth, remainingHealingCapacity);
+            UpdatePlayerHealthServerRpc((int)playerInteracting.playerClientId, playerInteracting.health, playerInteracting.health >= maximumPlayerHealth, remainingCapacity);
     }
 
     [ServerRpc(RequireOwnership = false)]
     private void UpdatePlayerHealthServerRpc(int playerID, int health, bool fullyHealed, int capacity)
     {
         if (IsServer)
-            capacity = Math.Min(capacity, remainingHealingCapacity);
+            capacity = Math.Min(capacity, remainingCapacity);
         UpdatePlayerHealthClientRpc(playerID, health, fullyHealed, capacity);
     }
 
@@ -281,34 +281,34 @@ public class HealingStation : NetworkBehaviour
 
         player.DamageOnOtherClients(0, health);
         if (fullyHealed)
-            StopHealingAudioOnClient();
+            StopActiveAudioOnClient();
 
-        SetHealingCapacity(capacity);
+        SetCapacityOnLocalClient(capacity);
     }
 
-    private void SetHealingCapacity(int healingCapacity)
+    private void SetCapacityOnLocalClient(int capacity)
     {
-        if (healingCapacity != remainingHealingCapacity)
+        if (capacity != remainingCapacity)
         {
-            capacityInterpolationQueue.Enqueue(new CapacityCheckpoint(Time.time, healingCapacity));
-            remainingHealingCapacity = healingCapacity;
+            capacityInterpolationQueue.Enqueue(new CapacityCheckpoint(Time.time, capacity));
+            remainingCapacity = capacity;
         }
 
-        if (remainingHealingCapacity <= 0)
+        if (remainingCapacity <= 0)
         {
-            StopHealingAudioOnClient(immediate: true);
+            StopActiveAudioOnClient(immediate: true);
             depletedAudio.Play();
-            healingStationAnimator.SetTrigger("Shuttered");
+            animator.SetTrigger("Shuttered");
         }
         else
         {
-            healingStationAnimator.ResetTrigger("Shuttered");
+            animator.ResetTrigger("Shuttered");
         }
     }
 
     private float GetUsedCapacityFraction(float remainingCapacity)
     {
-        return 1 - Math.Min(remainingCapacity / maxHealingCapacity, 1);
+        return 1 - Math.Min(remainingCapacity / maxCapacity, 1);
     }
 
     private void AnimateCapacity()
@@ -320,16 +320,16 @@ public class HealingStation : NetworkBehaviour
 
         if (!capacityInterpolationQueue.TryPeek(out var target))
         {
-            healingStationAnimator.SetFloat("UsedCapacity", GetUsedCapacityFraction(prevCapacityCheckpoint.capacity));
+            animator.SetFloat("UsedCapacity", GetUsedCapacityFraction(prevCapacityCheckpoint.capacity));
             return;
         }
 
         var delta = Mathf.Clamp01((currentTime - prevCapacityCheckpoint.time) / (target.time - prevCapacityCheckpoint.time));
         var displayUsedCapacity = GetUsedCapacityFraction(Mathf.Lerp(prevCapacityCheckpoint.capacity, target.capacity, delta));
-        healingStationAnimator.SetFloat("UsedCapacity", displayUsedCapacity);
+        animator.SetFloat("UsedCapacity", displayUsedCapacity);
     }
 
-    private void DoHealingAnimationTick()
+    private void DoActiveAnimationTick()
     {
         var stateTime = Time.time - stateStartTime;
 
@@ -339,11 +339,11 @@ public class HealingStation : NetworkBehaviour
             stateFlags |= AnimationFlags.PlayedStartupAudio;
         }
 
-        if (!stateFlags.HasFlag(AnimationFlags.PlayedHealingAudio) && stateTime >= healingAudioStartTime)
+        if (!stateFlags.HasFlag(AnimationFlags.PlayedActiveAudio) && stateTime >= activeAudioStartTime)
         {
-            healAudio.loop = true;
-            healAudio.Play();
-            stateFlags |= AnimationFlags.PlayedHealingAudio;
+            activeAudio.loop = true;
+            activeAudio.Play();
+            stateFlags |= AnimationFlags.PlayedActiveAudio;
         }
 
         // Stop the animation after 1 second to hold the charging animation in the middle.
@@ -368,12 +368,12 @@ public class HealingStation : NetworkBehaviour
         SetAnimationState(AnimationState.Exiting);
     }
 
-    private void StopHealingAudioOnClient(bool immediate = false)
+    private void StopActiveAudioOnClient(bool immediate = false)
     {
-        healAudio.loop = false;
+        activeAudio.loop = false;
         if (immediate)
-            healAudio.Stop();
-        stateFlags |= AnimationFlags.StoppedHealingAudio;
+            activeAudio.Stop();
+        stateFlags |= AnimationFlags.StoppedActiveAudio;
     }
 
     private void DoExitingAnimationTick()
@@ -386,8 +386,8 @@ public class HealingStation : NetworkBehaviour
             stateFlags |= AnimationFlags.StartedSpecialAnimation;
         }
 
-        if (!stateFlags.HasFlag(AnimationFlags.StoppedHealingAudio) && stateTime >= healingAudioEndTime)
-            StopHealingAudioOnClient();
+        if (!stateFlags.HasFlag(AnimationFlags.StoppedActiveAudio) && stateTime >= activeAudioEndTime)
+            StopActiveAudioOnClient();
 
         if (stateTime < 1)
             return;
