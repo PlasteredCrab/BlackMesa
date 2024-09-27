@@ -1,6 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.Netcode;
 using BlackMesa.Utilities;
+using GameNetcodeStuff;
 
 namespace BlackMesa.Components
 {
@@ -57,7 +58,18 @@ namespace BlackMesa.Components
                 return;
             if (hasExplodedOnClient)
                 return;
-            if (!other.CompareTag("Player"))
+
+            NetworkBehaviour collidedBehaviour = null;
+            if (other.CompareTag("Player"))
+                collidedBehaviour = other.GetComponent<PlayerControllerB>();
+            else if (other.tag.StartsWith("PlayerRagdoll"))
+                collidedBehaviour = other.GetComponent<DeadBodyInfo>()?.playerScript;
+            else if (other.CompareTag("PhysicsProp"))
+                collidedBehaviour = other.GetComponent<GrabbableObject>();
+
+            if (collidedBehaviour == null)
+                return;
+            if (!collidedBehaviour.IsOwner)
                 return;
 
             Explode();
