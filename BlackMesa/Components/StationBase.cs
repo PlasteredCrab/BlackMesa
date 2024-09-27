@@ -269,6 +269,8 @@ public abstract class StationBase : NetworkBehaviour
     [ClientRpc]
     private void UpdateCapacityClientRpc(int capacity)
     {
+        if (isActiveOnLocalClient)
+            return;
         remainingCapacity = capacity;
         UpdateCapacityAnimation();
     }
