@@ -36,7 +36,7 @@ public abstract class StationBase : NetworkBehaviour
     public Renderer renderer;
 
     public int backlightMaterialIndex = 0;
-    public float backlightEmissive = 1;
+    public float backlightEmissive = 4;
 
     public int maxCapacity = 100;
 
