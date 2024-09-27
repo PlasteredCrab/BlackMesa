@@ -80,6 +80,8 @@ namespace BlackMesa
             InitializeNetworkBehaviour(typeof(StationBase));
             InitializeNetworkBehaviour(typeof(HealingStation));
             RegisterNetworkPrefab($"{props}/Healing Station.prefab");
+            InitializeNetworkBehaviour(typeof(ChargingStation));
+            RegisterNetworkPrefab($"{props}/HEV Station 1.prefab");
         }
 
         private static AudioMixerGroup[] mixerGroups;
