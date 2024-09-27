@@ -1,4 +1,4 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using System;
 using Unity.Netcode;
 using UnityEngine;
@@ -8,10 +8,10 @@ namespace BlackMesa.Components;
 public class HealingStation : StationBase
 {
     public float healthSyncInterval;
+    public float healthPerSecond = 10f;
 
     private int maximumPlayerHealth;
 
-    private float healthPerSecond = 10f;
     private float healthRemainder = 0f;
 
     private float lastHealthSync = 0f;
