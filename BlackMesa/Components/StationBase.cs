@@ -1,4 +1,4 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using System.Collections.Generic;
 using System;
 using Unity.Netcode;
@@ -149,8 +149,6 @@ public abstract class StationBase : NetworkBehaviour
 
         TickIfActive();
 
-        SyncCapacity();
-
         switch (state)
         {
             case AnimationState.Active:
@@ -222,7 +220,7 @@ public abstract class StationBase : NetworkBehaviour
             StartExitingAnimationServerRpc();
         }
 
-        bool capacityChanged = prevRemainingCapacity == remainingCapacity;
+        bool capacityChanged = prevRemainingCapacity != remainingCapacity;
         bool capacitySynced = false;
         if (capacityChanged)
         {
