@@ -38,7 +38,7 @@ public abstract class StationBase : NetworkBehaviour
     public int backlightMaterialIndex = 0;
     public float backlightEmissive = 4;
 
-    public int maxCapacity = 100;
+    public float maxCapacity = 100;
 
     // Animation timing
     public float startupAudioTime = 0.25f;
@@ -57,8 +57,8 @@ public abstract class StationBase : NetworkBehaviour
 
     protected bool isActiveOnLocalClient = false;
 
-    protected int remainingCapacity;
-    private int prevRemainingCapacity = -1;
+    protected float remainingCapacity;
+    private float prevRemainingCapacity = -1;
     private float lastCapacitySync;
 
     private float timeUntilActive = 0;
@@ -71,10 +71,10 @@ public abstract class StationBase : NetworkBehaviour
 
     private InputAction interactAction;
 
-    private struct CapacityCheckpoint(float time, int capacity)
+    private struct CapacityCheckpoint(float time, float capacity)
     {
         internal float time = time;
-        internal int capacity = capacity;
+        internal float capacity = capacity;
     }
 
     private CapacityCheckpoint prevCapacityCheckpoint;
@@ -253,10 +253,10 @@ public abstract class StationBase : NetworkBehaviour
 
     protected abstract void OnActiveTickingEnded();
 
-    protected void ConsumeCapacity(int amount)
+    protected void ConsumeCapacity(float amount)
     {
         if (amount > remainingCapacity)
-            throw new ArgumentOutOfRangeException("amount", $"Capacity to consume {amount} was greater than remaining capacity {remainingCapacity}");
+            throw new ArgumentOutOfRangeException("amount", $"Capacity to consume {amount:.4} was greater than remaining capacity {remainingCapacity:.4}");
 
         remainingCapacity -= amount;
     }
@@ -268,7 +268,7 @@ public abstract class StationBase : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void UpdateCapacityServerRpc(int capacity)
+    private void UpdateCapacityServerRpc(float capacity)
     {
         if (IsServer)
             capacity = Math.Min(capacity, remainingCapacity);
@@ -276,7 +276,7 @@ public abstract class StationBase : NetworkBehaviour
     }
 
     [ClientRpc]
-    private void UpdateCapacityClientRpc(int capacity)
+    private void UpdateCapacityClientRpc(float capacity)
     {
         if (isActiveOnLocalClient)
             return;
