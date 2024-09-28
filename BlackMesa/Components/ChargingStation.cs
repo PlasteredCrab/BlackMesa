@@ -74,7 +74,6 @@ public class ChargingStation : StationBase
             SyncBatteryCharge();
 
         ConsumeCapacity(chargeAmount);
-        BlackMesaInterior.Logger.LogInfo($"{Time.time}: delta {chargeDelta}");
 
         return result;
     }
