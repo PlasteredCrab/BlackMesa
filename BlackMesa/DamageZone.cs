@@ -9,7 +9,6 @@ using UnityEngine;
 namespace BlackMesa;
 public class DamageZone : MonoBehaviour
 {
-
     public int DamageAmount;
     public float DamageTickRate;
     public CauseOfDeath cause;
