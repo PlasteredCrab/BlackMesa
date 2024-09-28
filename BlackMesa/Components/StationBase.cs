@@ -47,6 +47,8 @@ public abstract class StationBase : NetworkBehaviour
     public float activeAudioEndTime = 0.4f;
     public float activeEndTime = 0.65f;
 
+    public bool stopActiveAudioInstantly = false;
+
     public float capacitySyncInterval = 0.25f;
 
     private Material backlightMaterial;
@@ -332,7 +334,8 @@ public abstract class StationBase : NetworkBehaviour
 
         if (!stateFlags.HasFlag(AnimationFlags.PlayedActiveAudio) && stateTime >= activeAudioStartTime)
         {
-            activeAudio.loop = true;
+            if (!stopActiveAudioInstantly)
+                activeAudio.loop = true;
             activeAudio.Play();
             stateFlags |= AnimationFlags.PlayedActiveAudio;
         }
@@ -361,9 +364,10 @@ public abstract class StationBase : NetworkBehaviour
 
     protected void StopActiveAudioOnClient(bool immediate = false)
     {
-        activeAudio.loop = false;
-        if (immediate)
+        if (immediate || stopActiveAudioInstantly)
             activeAudio.Stop();
+        else
+            activeAudio.loop = false;
         stateFlags |= AnimationFlags.StoppedActiveAudio;
     }
 
