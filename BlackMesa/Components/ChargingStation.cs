@@ -1,4 +1,4 @@
-﻿using GameNetcodeStuff;
+using GameNetcodeStuff;
 using UnityEngine;
 
 namespace BlackMesa.Components;
@@ -24,5 +24,9 @@ public class ChargingStation : StationBase
         TickResult result = TickResult.Continue;
         BlackMesaInterior.Logger.LogInfo("Charge battery!");
         return result;
+    }
+
+    protected override void OnActiveTickingEnded()
+    {
     }
 }

@@ -245,10 +245,13 @@ public abstract class StationBase : NetworkBehaviour
             isActiveOnLocalClient = false;
             if (capacityChanged && !capacitySynced)
                 SyncCapacity();
+            OnActiveTickingEnded();
         }
     }
 
     protected abstract TickResult DoActiveTick();
+
+    protected abstract void OnActiveTickingEnded();
 
     protected void ConsumeCapacity(int amount)
     {

@@ -84,6 +84,11 @@ public class HealingStation : StationBase
         return result;
     }
 
+    protected override void OnActiveTickingEnded()
+    {
+        UpdatePlayerHealth();
+    }
+
     private void UpdatePlayerHealth()
     {
         UpdatePlayerHealthServerRpc((int)playerInteracting.playerClientId, playerInteracting.health, playerInteracting.health >= maximumPlayerHealth);
