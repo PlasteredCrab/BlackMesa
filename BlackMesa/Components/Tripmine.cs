@@ -29,7 +29,7 @@ namespace BlackMesa.Components
 
         public void SetupLaserAndCollider()
         {
-            if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, LayerMask.GetMask(new string[] { "Room", "Default" })))
+            if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, LayerMask.GetMask(["Room", "Default"])))
             {
                 gameObject.SetActive(false);
                 return;
@@ -62,6 +62,8 @@ namespace BlackMesa.Components
             NetworkBehaviour collidedBehaviour = null;
             if (other.CompareTag("Player"))
                 collidedBehaviour = other.GetComponent<PlayerControllerB>();
+            if (other.CompareTag("PlayerBody"))
+                collidedBehaviour = other.GetComponentInParent<PlayerControllerB>();
             else if (other.tag.StartsWith("PlayerRagdoll"))
                 collidedBehaviour = other.GetComponent<DeadBodyInfo>()?.playerScript;
             else if (other.CompareTag("PhysicsProp"))
