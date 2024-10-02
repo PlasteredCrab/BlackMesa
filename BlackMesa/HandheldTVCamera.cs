@@ -39,7 +39,7 @@ namespace BlackMesa
 
         private IEnumerator ExplodeAfterDelayCoroutine()
         {
-            yield return new WaitForSeconds(1);
+            yield return new WaitForSeconds(5);
             ExplodeClientRPC();
         }
 
