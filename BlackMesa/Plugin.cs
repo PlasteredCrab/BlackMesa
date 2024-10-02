@@ -69,6 +69,7 @@ namespace BlackMesa
             harmony.PatchAll(typeof(PatchStartOfRound));
             harmony.PatchAll(typeof(PatchRoundManager));
             harmony.PatchAll(typeof(PatchNetworkManager));
+            harmony.PatchAll(typeof(PatchDungeonGenerator));
             harmony.PatchAll(typeof(PatchLungProp));
 
             const string props = "Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props";
