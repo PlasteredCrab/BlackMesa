@@ -8,7 +8,9 @@ using LethalLevelLoader;
 using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Unity.Netcode;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -42,20 +44,30 @@ namespace BlackMesa
             Logger = base.Logger;
 
             // Load Interior Dungeon assets from the AssetBundle.
-            string directoryName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            Assets = AssetBundle.LoadFromFile(Path.Combine(directoryName, "blackmesainterior"));
+            string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            Assets = AssetBundle.LoadFromFile(Path.Combine(assemblyPath, "blackmesainterior"));
             if (Assets == null)
             {
-                Logger.LogError("Failed to load Interior Dungeon assets.");
-                return;
+                if (Application.isEditor)
+                {
+                    Logger.LogWarning("Failed to load interior dungeon assets, attempting to continue by loading resources by path.");
+                }
+                else
+                {
+                    Logger.LogError("Failed to load interior dungeon assets.");
+                    return;
+                }
             }
-            Logger.LogInfo("Interior Assets loaded successfully.");
+            else
+            {
+                Logger.LogInfo("Interior assets loaded successfully.");
+            }
 
             // Retrieve the Extended Dungeon Flow from the AssetBundle.
-            ExtendedDungeonFlow blackMesaExtendedDungeon = Assets.LoadAsset<ExtendedDungeonFlow>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Black Mesa Extended Flow.asset");
+            ExtendedDungeonFlow blackMesaExtendedDungeon = LoadAsset<ExtendedDungeonFlow>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Black Mesa Extended Flow.asset");
             if (blackMesaExtendedDungeon == null)
             {
-                Logger.LogError("Failed to load Interior Dungeon Flow.");
+                Logger.LogError("Failed to load Interior Dungeon Flow. Stopping.");
                 return;
             }
 
@@ -86,6 +98,35 @@ namespace BlackMesa
             RegisterNetworkPrefab($"{props}/HEV Station 1.prefab");
         }
 
+        internal static T LoadAsset<T>(string path) where T : UnityEngine.Object
+        {
+            if (Assets != null)
+            {
+                Logger.LogInfo($"Loading {path} from asset bundle.");
+                return Assets.LoadAsset<T>(path);
+            }
+
+            if (!Application.isEditor)
+                return null;
+
+            Logger.LogInfo($"Loading {path} from editor assets.");
+            try
+            {
+                return TryToLoadAssetDirectlyInEditor<T>(path);
+            }
+            catch (FileNotFoundException)
+            {
+                Logger.LogError($"Editor assembly is not present.");
+                return null;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static T TryToLoadAssetDirectlyInEditor<T>(string path) where T : UnityEngine.Object
+        {
+            return AssetDatabase.LoadAssetAtPath<T>(path);
+        }
+
         private static AudioMixerGroup[] mixerGroups;
 
         private static void InitializeNetworkBehaviour(Type type)
@@ -103,7 +144,7 @@ namespace BlackMesa
 
         private static void RegisterNetworkPrefab(string path)
         {
-            var prefab = Assets.LoadAsset<GameObject>(path);
+            var prefab = LoadAsset<GameObject>(path);
 
             if (prefab == null)
             {
