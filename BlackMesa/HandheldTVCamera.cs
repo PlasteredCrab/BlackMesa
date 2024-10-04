@@ -13,10 +13,14 @@ namespace BlackMesa
         [SerializeField]
         private Light nightVisionLight;
 
+
         public Camera Camera => securityCamera;
 
         public Light NightVisionLight => nightVisionLight;
 
+        public AudioClip HandheldExplosionWarning;
+
+        public float HandheldExplosionDelay = 5;
 
         public override void Start()
         {
@@ -39,7 +43,8 @@ namespace BlackMesa
 
         private IEnumerator ExplodeAfterDelayCoroutine()
         {
-            yield return new WaitForSeconds(5);
+            thisAudio.PlayOneShot(HandheldExplosionWarning);
+            yield return new WaitForSeconds(HandheldExplosionDelay);
             ExplodeClientRPC();
         }
 
