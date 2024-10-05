@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+using BlackMesa.Components;
+using HarmonyLib;
 using UnityEngine;
 
 namespace BlackMesa.Patches
