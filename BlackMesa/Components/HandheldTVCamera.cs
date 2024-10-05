@@ -4,7 +4,7 @@ using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
-namespace BlackMesa
+namespace BlackMesa.Components
 {
     internal class HandheldTVCamera : WalkieTalkie, INightVisionCamera
     {
@@ -51,7 +51,7 @@ namespace BlackMesa
         [ClientRpc]
         public void ExplodeClientRPC()
         {
-            BetterExplosion.SpawnExplosion(transform.position, 1, 2, 90);
+            BetterExplosion.SpawnExplosion(transform.position, 0.25f, 1, 20);
 
             if (playerHeldBy != null)
             {
