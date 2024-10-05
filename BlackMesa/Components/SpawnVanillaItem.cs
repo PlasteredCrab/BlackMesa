@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using BlackMesa.Utilities;
+using UnityEngine;
 
 namespace BlackMesa.Components;
 
@@ -11,7 +12,10 @@ internal class SpawnVanillaItem : MonoBehaviour
         var item = GetItemByName(itemName);
 
         if (item == null)
+        {
+            BlackMesaInterior.Logger.LogError($"{transform.GetPath()} did not find its item by name {itemName}.");
             return;
+        }
 
         if (GetComponent<SpawnSyncedObject>() is not { } spawner)
             spawner = gameObject.AddComponent<SpawnSyncedObject>();
