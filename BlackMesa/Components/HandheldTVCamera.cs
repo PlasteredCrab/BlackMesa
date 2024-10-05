@@ -8,11 +8,8 @@ namespace BlackMesa.Components
 {
     internal class HandheldTVCamera : WalkieTalkie, INightVisionCamera
     {
-        [SerializeField]
         private Camera securityCamera;
-        [SerializeField]
         private Light nightVisionLight;
-
 
         public Camera Camera => securityCamera;
 
