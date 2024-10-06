@@ -8,8 +8,8 @@ namespace BlackMesa.Components
 {
     public class HandheldTVCamera : WalkieTalkie, INightVisionCamera
     {
-        private Camera securityCamera;
-        private Light nightVisionLight;
+        public Camera securityCamera;
+        public Light nightVisionLight;
 
         public Camera Camera => securityCamera;
 
