@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine.Rendering;
 using UnityEngine;
 using BlackMesa.Components;
+using BlackMesa.Utilities;
 
 namespace BlackMesa
 {
@@ -15,20 +16,16 @@ namespace BlackMesa
 
         internal static SecurityCameraManager Instance;
 
-        [SerializeField]
         public MeshRenderer handheldTVTerminal;
-        [SerializeField]
         public List<int> handheldTVMaterialIndices;
-        [SerializeField]
         public List<BoxCollider> handheldTVTerminalScreenColliders;
         private Bounds[] handheldTVTerminalScreenBounds;
+        private Material[] handheldTVScreenOffMaterials;
         int currentHandheldTVIndex;
 
-        [SerializeField]
         public MeshRenderer securityFeedTerminal;
-        [SerializeField]
+        public Material securityFeedMaterial;
         public List<int> securityCameraMaterialIndices;
-        [SerializeField]
         public List<BoxCollider> securityFeedTerminalScreenColliders;
         private Bounds[] securityFeedTerminalScreenBounds;
         int currentSecurityCameraIndex;
@@ -51,6 +48,10 @@ namespace BlackMesa
             handheldTVTerminalScreenBounds = new Bounds[handheldTVTerminalScreenColliders.Count];
             for (var i = 0; i < handheldTVTerminalScreenColliders.Count; i++)
                 handheldTVTerminalScreenBounds[i] = handheldTVTerminalScreenColliders[i].bounds;
+
+            handheldTVScreenOffMaterials = new Material[handheldTVMaterialIndices.Count];
+            for (var i = 0; i < handheldTVMaterialIndices.Count; i++)
+                handheldTVScreenOffMaterials[i] = handheldTVTerminal.sharedMaterials[handheldTVMaterialIndices[i]];
         }
 
         private void AddNightVisionCamera(INightVisionCamera nightVisionCamera)
@@ -62,20 +63,22 @@ namespace BlackMesa
         public void AssignSecurityCameraFeed(SecurityCamera securityCamera)
         {
             if (currentSecurityCameraIndex >= securityCameraMaterialIndices.Count)
-            {
                 return;
-            }
 
-            var securityCameraMaterialIndex = securityCameraMaterialIndices[currentSecurityCameraIndex];
-            securityFeedTerminal.sharedMaterials[securityCameraMaterialIndex].mainTexture = securityCamera.Camera.targetTexture;
-            currentSecurityCameraIndex++;
+            var securityCameraMaterialIndex = securityCameraMaterialIndices[currentSecurityCameraIndex++];
+
+            var material = new Material(securityFeedMaterial)
+            {
+                mainTexture = securityCamera.Camera.targetTexture,
+            };
+            securityFeedTerminal.SetMaterial(securityCameraMaterialIndex, material);
 
             Debug.Log("Added security camera to nightvision camera list");
             securityCameras.Add(securityCamera);
             AddNightVisionCamera(securityCamera);
         }
 
-        public void AssignHandheldTVFeed(HandheldTVCamera handheldTVCamera, Material targetMaterial)
+        public void AssignHandheldTVFeed(HandheldTVCamera handheldTVCamera, Material material)
         {
             if (currentHandheldTVIndex >= handheldTVMaterialIndices.Count)
             {
@@ -84,7 +87,7 @@ namespace BlackMesa
 
             var materials = handheldTVTerminal.sharedMaterials;
             var index = handheldTVMaterialIndices[currentHandheldTVIndex];
-            materials[index] = targetMaterial;
+            materials[index] = material;
 
             handheldTVTerminal.sharedMaterials = materials;
             currentHandheldTVIndex++;
