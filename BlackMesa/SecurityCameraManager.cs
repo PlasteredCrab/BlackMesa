@@ -20,7 +20,6 @@ namespace BlackMesa
         public List<int> handheldTVMaterialIndices;
         public List<BoxCollider> handheldTVTerminalScreenColliders;
         private Bounds[] handheldTVTerminalScreenBounds;
-        private Material[] handheldTVScreenOffMaterials;
         int currentHandheldTVIndex;
 
         public MeshRenderer securityFeedTerminal;
@@ -48,10 +47,6 @@ namespace BlackMesa
             handheldTVTerminalScreenBounds = new Bounds[handheldTVTerminalScreenColliders.Count];
             for (var i = 0; i < handheldTVTerminalScreenColliders.Count; i++)
                 handheldTVTerminalScreenBounds[i] = handheldTVTerminalScreenColliders[i].bounds;
-
-            handheldTVScreenOffMaterials = new Material[handheldTVMaterialIndices.Count];
-            for (var i = 0; i < handheldTVMaterialIndices.Count; i++)
-                handheldTVScreenOffMaterials[i] = handheldTVTerminal.sharedMaterials[handheldTVMaterialIndices[i]];
         }
 
         private void AddNightVisionCamera(INightVisionCamera nightVisionCamera)
