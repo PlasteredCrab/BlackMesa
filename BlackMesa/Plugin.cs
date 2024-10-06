@@ -101,15 +101,11 @@ namespace BlackMesa
         internal static T LoadAsset<T>(string path) where T : UnityEngine.Object
         {
             if (Assets != null)
-            {
-                Logger.LogInfo($"Loading {path} from asset bundle.");
                 return Assets.LoadAsset<T>(path);
-            }
 
             if (!Application.isEditor)
                 return null;
 
-            Logger.LogInfo($"Loading {path} from editor assets.");
             try
             {
                 return TryToLoadAssetDirectlyInEditor<T>(path);
