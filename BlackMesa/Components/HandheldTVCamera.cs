@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BlackMesa.Components
 {
-    internal class HandheldTVCamera : WalkieTalkie, INightVisionCamera
+    public class HandheldTVCamera : WalkieTalkie, INightVisionCamera
     {
         private Camera securityCamera;
         private Light nightVisionLight;
