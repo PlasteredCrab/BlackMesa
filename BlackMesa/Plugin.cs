@@ -63,19 +63,24 @@ namespace BlackMesa
                 Logger.LogInfo("Interior assets loaded successfully.");
             }
 
-            // Retrieve the Extended Dungeon Flow from the AssetBundle.
-            ExtendedDungeonFlow blackMesaExtendedDungeon = LoadAsset<ExtendedDungeonFlow>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Black Mesa Extended Flow.asset");
-            if (blackMesaExtendedDungeon == null)
+            // Load and register the mod to LethalLevelLoader.
+            ExtendedMod blackMesaExtendedMod = LoadAsset<ExtendedMod>("Assets/LethalCompany/Mods/BlackMesaInterior/BlackMesaInteriorMod.asset");
+            if (blackMesaExtendedMod == null)
             {
-                Logger.LogError("Failed to load Interior Dungeon Flow. Stopping.");
+                Logger.LogError("Failed to load the interior assets. Stopping.");
+                return;
+            }
+            if (blackMesaExtendedMod.ExtendedDungeonFlows.Count < 1)
+            {
+                Logger.LogError("The extended mod has no dungeon flow?!");
                 return;
             }
 
-            BlackMesaFlow = blackMesaExtendedDungeon.DungeonFlow;
+            BlackMesaFlow = blackMesaExtendedMod.ExtendedDungeonFlows[0].DungeonFlow;
 
             // Register the Extended Dungeon Flow with LLL.
-            PatchedContent.RegisterExtendedDungeonFlow(blackMesaExtendedDungeon);
-            Logger.LogInfo("Loaded Extended DungeonFlow.");
+            PatchedContent.RegisterExtendedMod(blackMesaExtendedMod);
+            Logger.LogInfo("Loaded and registered interior assets.");
 
             // Apply patches.
             harmony.PatchAll(typeof(PatchStartOfRound));
