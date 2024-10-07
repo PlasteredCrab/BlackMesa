@@ -55,7 +55,7 @@ namespace BlackMesa.Components
                 return;
             hasExploded = true;
 
-            BetterExplosion.SpawnExplosion(transform.position, 0.5f, 1, 20);
+            BetterExplosion.SpawnExplosion(transform.position, 0.5f, 2, 20);
 
             if (playerHeldBy != null)
             {
