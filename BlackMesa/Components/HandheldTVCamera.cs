@@ -43,9 +43,23 @@ namespace BlackMesa.Components
         private IEnumerator ExplodeAfterDelay()
         {
             yield return new WaitForSeconds(10);
-            thisAudio.PlayOneShot(HandheldExplosionWarning);
+            PlayExplosionWarningSound();
+            PlayExplosionWarningSoundClientRpc();
             yield return new WaitForSeconds(HandheldExplosionDelay);
             ExplodeClientRPC();
+        }
+
+        [ClientRpc]
+        public void PlayExplosionWarningSoundClientRpc()
+        {
+            if (IsServer)
+                return;
+            PlayExplosionWarningSound();
+        }
+
+        public void PlayExplosionWarningSound()
+        {
+            thisAudio.PlayOneShot(HandheldExplosionWarning);
         }
 
         [ClientRpc]
