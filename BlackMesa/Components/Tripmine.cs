@@ -27,15 +27,19 @@ namespace BlackMesa.Components
 
         private void Awake()
         {
-            SetupLaserAndCollider();
-
             PlaceTerminalAccessibleObjectOnFloor();
+        }
+
+        private void Start()
+        {
+            SetupLaserAndCollider();
         }
 
         public void SetupLaserAndCollider()
         {
             if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, RoomAndDefault.Value))
             {
+                BlackMesaInterior.Logger.LogWarning($"{this} at {transform.position} failed its raycast, disabling.");
                 gameObject.SetActive(false);
                 return;
             }
@@ -65,7 +69,6 @@ namespace BlackMesa.Components
 
             if (!Physics.Raycast(origin, -transform.forward, out var hit, 3, RoomAndDefault.Value))
             {
-                Debug.Log($"Failed to place terminal point at {origin}");
                 terminalObject.transform.position = origin;
                 return;
             }
