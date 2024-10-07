@@ -1,4 +1,4 @@
-using BlackMesa.Components;
+﻿using BlackMesa.Components;
 using HarmonyLib;
 using UnityEngine;
 
@@ -8,12 +8,21 @@ namespace BlackMesa.Patches
     public sealed class PatchStartOfRound
     {
         [HarmonyPostfix]
+        [HarmonyPatch(nameof(StartOfRound.ShipLeave))]
+        private static void ShipLeavePostFix()
+        {
+            var handheldTVs = Object.FindObjectsByType<HandheldTVCamera>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var handheldTV in handheldTVs)
+                handheldTV.ShipIsLeaving();
+        }
+
+        [HarmonyPostfix]
         [HarmonyPatch(nameof(StartOfRound.ShipHasLeft))]
         private static void ShipHasLeftPostFix()
         {
             var handheldTVs = Object.FindObjectsByType<HandheldTVCamera>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             foreach (var handheldTV in handheldTVs)
-                handheldTV.ExplodeAfterDelay();
+                handheldTV.ExplodeClientRPC();
         }
     }
 }

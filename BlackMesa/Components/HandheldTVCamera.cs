@@ -19,6 +19,8 @@ namespace BlackMesa.Components
 
         public float HandheldExplosionDelay = 5;
 
+        private bool hasExploded = false;
+
         public override void Start()
         {
             base.Start();
@@ -31,15 +33,16 @@ namespace BlackMesa.Components
             SecurityCameraManager.Instance.AssignHandheldTVFeed(this, onMaterial);
         }
 
-        public void ExplodeAfterDelay()
+        public void ShipIsLeaving()
         {
             if (!IsServer)
                 return;
-            StartCoroutine(ExplodeAfterDelayCoroutine());
+            StartCoroutine(ExplodeAfterDelay());
         }
 
-        private IEnumerator ExplodeAfterDelayCoroutine()
+        private IEnumerator ExplodeAfterDelay()
         {
+            yield return new WaitForSeconds(10);
             thisAudio.PlayOneShot(HandheldExplosionWarning);
             yield return new WaitForSeconds(HandheldExplosionDelay);
             ExplodeClientRPC();
@@ -48,7 +51,11 @@ namespace BlackMesa.Components
         [ClientRpc]
         public void ExplodeClientRPC()
         {
-            BetterExplosion.SpawnExplosion(transform.position, 0.25f, 1, 20);
+            if (hasExploded)
+                return;
+            hasExploded = true;
+
+            BetterExplosion.SpawnExplosion(transform.position, 0.5f, 1, 20);
 
             if (playerHeldBy != null)
             {
