@@ -2,11 +2,14 @@
 using Unity.Netcode;
 using BlackMesa.Utilities;
 using GameNetcodeStuff;
+using System;
 
 namespace BlackMesa.Components
 {
     internal class Tripmine : NetworkBehaviour
     {
+        public static Lazy<int> RoomAndDefault = new(() => LayerMask.GetMask("Room", "Default"));
+
         public LineRenderer laserRenderer;
         public BoxCollider laserCollider;
 
@@ -22,14 +25,16 @@ namespace BlackMesa.Components
 
         private bool activated = true;
 
-        private void Start()
+        private void Awake()
         {
             SetupLaserAndCollider();
+
+            PlaceTerminalAccessibleObjectOnFloor();
         }
 
         public void SetupLaserAndCollider()
         {
-            if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, LayerMask.GetMask(["Room", "Default"])))
+            if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, RoomAndDefault.Value))
             {
                 gameObject.SetActive(false);
                 return;
@@ -50,6 +55,22 @@ namespace BlackMesa.Components
             // Adjust the BoxCollider size and center
             laserCollider.size = new Vector3(laserCollider.size.x, distanceToWall, laserCollider.size.z);
             laserCollider.center = new Vector3(0f, -halfDistance, 0f);
+        }
+
+        public void PlaceTerminalAccessibleObjectOnFloor()
+        {
+            // Originate the ray from slightly in front of the tripmine to avoid hitting whatever it may be
+            // attached to.
+            var origin = transform.position - transform.up * 0.2f;
+
+            if (!Physics.Raycast(origin, -transform.forward, out var hit, 3, RoomAndDefault.Value))
+            {
+                Debug.Log($"Failed to place terminal point at {origin}");
+                terminalObject.transform.position = origin;
+                return;
+            }
+
+            terminalObject.transform.position = hit.point;
         }
 
         private void OnTriggerStay(Collider other)
