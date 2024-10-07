@@ -1,4 +1,4 @@
-﻿using BlackMesa.Components;
+using BlackMesa.Components;
 using GameNetcodeStuff;
 using UnityEngine;
 
@@ -92,7 +92,7 @@ internal static class BetterExplosion
         objectsToHit = Physics.OverlapSphere(explosionPosition, 10, ~(1 << collidersLayer));
         foreach (var objectToHit in objectsToHit)
         {
-            if (objectToHit.GetComponent<Rigidbody>() is Rigidbody rigidBody)
+            if (objectToHit.TryGetComponent<Rigidbody>(out var rigidBody))
                 rigidBody.AddExplosionForce(70, explosionPosition, 10);
         }
     }
