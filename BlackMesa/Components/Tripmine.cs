@@ -25,14 +25,10 @@ namespace BlackMesa.Components
 
         private bool activated = true;
 
-        private void Awake()
-        {
-            PlaceTerminalAccessibleObjectOnFloor();
-        }
-
         private void Start()
         {
             SetupLaserAndCollider();
+            PlaceTerminalAccessibleObjectOnFloor();
         }
 
         public void SetupLaserAndCollider()
