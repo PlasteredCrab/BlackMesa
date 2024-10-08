@@ -10,7 +10,7 @@ namespace BlackMesa.Patches
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnSyncedProps))]
         private static void SpawnSyncedPropsPostfix(RoundManager __instance)
         {
-            if (__instance.dungeonGenerator.Generator.DungeonFlow != BlackMesaInterior.BlackMesaFlow)
+            if (__instance.dungeonGenerator?.Generator.DungeonFlow != BlackMesaInterior.BlackMesaFlow)
                 return;
 
             var spawnedObjects = __instance.spawnedSyncedObjects;
