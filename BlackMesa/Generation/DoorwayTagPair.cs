@@ -27,6 +27,6 @@ public struct DoorwayTagPair(DoorwayTag tagA, DoorwayTag tagB) : IEquatable<Door
 
     public override readonly int GetHashCode()
     {
-        return HashCode.Combine(tagA.GetHashCode(), tagB.GetHashCode());
+        return HashCode.Combine(tagA != null ? tagA.GetHashCode() : 0, tagB != null ? tagB.GetHashCode() : 0);
     }
 }
