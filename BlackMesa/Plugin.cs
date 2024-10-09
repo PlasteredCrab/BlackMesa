@@ -77,7 +77,7 @@ namespace BlackMesa
                 return;
             }
 
-            var interiorConnectionRules = LoadAsset<ConnectionRules>("Assets/LethalCompany/Mods/BlackMesaInterior/GenerationRules.prefab");
+            var interiorConnectionRules = LoadAsset<ConnectionRules>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/GenerationRules.prefab");
             if (interiorConnectionRules == null)
             {
                 Logger.LogError("Failed to find generation rules prefab. Stopping.");
