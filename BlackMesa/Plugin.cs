@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Logging;
 using BlackMesa.Components;
+using BlackMesa.Generation;
 using BlackMesa.Patches;
 using DunGen.Graph;
 using HarmonyLib;
@@ -75,6 +76,14 @@ namespace BlackMesa
                 Logger.LogError("The extended mod has no dungeon flow?!");
                 return;
             }
+
+            var interiorConnectionRules = LoadAsset<ConnectionRules>("Assets/LethalCompany/Mods/BlackMesaInterior/GenerationRules.prefab");
+            if (interiorConnectionRules == null)
+            {
+                Logger.LogError("Failed to find generation rules prefab. Stopping.");
+                return;
+            }
+            Instantiate(interiorConnectionRules);
 
             BlackMesaFlow = blackMesaExtendedMod.ExtendedDungeonFlows[0].DungeonFlow;
 
