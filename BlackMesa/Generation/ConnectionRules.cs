@@ -11,6 +11,11 @@ public class ConnectionRules : MonoBehaviour
     private TileConnectionRule rule;
     private Dictionary<DoorwayTagPair, TileConnectionRule.ConnectionResult> doorwayTagRuleLookup = [];
 
+    private void Awake()
+    {
+        DontDestroyOnLoad(this);
+    }
+
     private void OnEnable()
     {
         rule = new TileConnectionRule(CanTilesConnect);
