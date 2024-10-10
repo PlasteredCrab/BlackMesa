@@ -10,7 +10,7 @@ public struct DoorwayTagRule : IEquatable<DoorwayTagPair>
     public DoorwayTag tagB;
     public TileConnectionRule.ConnectionResult result;
 
-    public DoorwayTagPair Pair => new DoorwayTagPair(tagA, tagB);
+    public readonly DoorwayTagPair Pair => new(tagA, tagB);
 
     public readonly bool Equals(DoorwayTagPair other)
     {
