@@ -73,9 +73,17 @@ namespace BlackMesa
             }
             if (blackMesaExtendedMod.ExtendedDungeonFlows.Count < 1)
             {
-                Logger.LogError("The extended mod has no dungeon flow?!");
+                Logger.LogError("The extended mod has no dungeon flow.");
                 return;
             }
+
+            var dunGenExtender = LoadAsset<DunGenPlus.DunGenExtender>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/DunGenPlus/DunGenExtender.asset");
+            if (dunGenExtender == null)
+            {
+                Logger.LogError("Failed to find DunGenPlus configuration. Stopping.");
+                return;
+            }
+            DunGenPlus.API.AddDunGenExtender(blackMesaExtendedMod.ExtendedDungeonFlows[0].DungeonFlow, dunGenExtender);
 
             var interiorConnectionRules = LoadAsset<ConnectionRules>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/GenerationRules.prefab");
             if (interiorConnectionRules == null)

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
@@ -25,6 +25,7 @@
         <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" IncludeAssets="compile" />
         <PackageReference Include="Unity3D.SDK" Version="2021.1.14.1" IncludeAssets="compile" />
         <PackageReference Include="IAmBatby-LethalLevelLoader" Version="1.3.10" />
+        <PackageReference Include="Alice-DungeonGenerationPlus" Version="1.*" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
