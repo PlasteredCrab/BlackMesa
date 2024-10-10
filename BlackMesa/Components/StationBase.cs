@@ -35,8 +35,8 @@ public abstract class StationBase : NetworkBehaviour
     public Animator animator;
     public Renderer renderer;
 
-    public int backlightMaterialIndex = 0;
-    public float backlightEmissive = 4;
+    public float emissiveMultiplier = 1;
+    public int[] emissiveMaterialIndices;
 
     public float maxCapacity = 100;
 
@@ -51,8 +51,9 @@ public abstract class StationBase : NetworkBehaviour
 
     public float capacitySyncInterval = 0.25f;
 
-    private Material backlightMaterial;
-    private float prevBacklightEmissive = 0;
+    private Material[] materials;
+    private Color[] materialEmissives;
+    private float prevEmissiveMultiplier = 0;
     private int emissiveColorPropertyID = Shader.PropertyToID("_EmissiveColor");
 
     protected bool isActiveOnLocalClient = false;
@@ -89,7 +90,16 @@ public abstract class StationBase : NetworkBehaviour
         interactAction = IngamePlayerSettings.Instance.playerInput.actions.FindAction("Interact");
 
         prevCapacityCheckpoint = new CapacityCheckpoint(Time.time, remainingCapacity);
-        backlightMaterial = renderer.materials[backlightMaterialIndex];
+
+        materials = new Material[emissiveMaterialIndices.Length];
+        materialEmissives = new Color[emissiveMaterialIndices.Length];
+        for (var i = 0; i < emissiveMaterialIndices.Length; i++)
+        {
+            var material = renderer.materials[emissiveMaterialIndices[i]];
+            materials[i] = material;
+            materialEmissives[i] = material.GetColor(emissiveColorPropertyID);
+            Debug.Log($"Material {i}: {material} color = {materialEmissives[i]}");
+        }
     }
 
     private void SetAnimationState(AnimationState state)
@@ -395,9 +405,12 @@ public abstract class StationBase : NetworkBehaviour
 
     private void LateUpdate()
     {
-        if (backlightEmissive == prevBacklightEmissive)
+        if (emissiveMultiplier == prevEmissiveMultiplier)
             return;
-        backlightMaterial.SetColor(emissiveColorPropertyID, new Color(backlightEmissive, backlightEmissive, backlightEmissive, 1));
-        prevBacklightEmissive = backlightEmissive;
+
+        for (var i = 0; i < materials.Length; i++)
+            materials[i].SetColor(emissiveColorPropertyID, materialEmissives[i] * emissiveMultiplier);
+
+        prevEmissiveMultiplier = emissiveMultiplier;
     }
 }
