@@ -85,7 +85,7 @@ namespace BlackMesa
             }
             DunGenPlus.API.AddDunGenExtender(blackMesaExtendedMod.ExtendedDungeonFlows[0].DungeonFlow, dunGenExtender);
 
-            var interiorConnectionRules = LoadAsset<ConnectionRules>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/GenerationRules.prefab");
+            var interiorConnectionRules = LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/GenerationRules.prefab");
             if (interiorConnectionRules == null)
             {
                 Logger.LogError("Failed to find generation rules prefab. Stopping.");
