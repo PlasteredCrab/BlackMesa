@@ -83,7 +83,7 @@ namespace BlackMesa
                 Logger.LogError("Failed to find DunGenPlus configuration. Stopping.");
                 return;
             }
-            DunGenPlus.API.AddDunGenExtender(blackMesaExtendedMod.ExtendedDungeonFlows[0].DungeonFlow, dunGenExtender);
+            DunGenPlus.API.AddDunGenExtender(dunGenExtender);
 
             var interiorConnectionRules = LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/GenerationRules.prefab");
             if (interiorConnectionRules == null)
