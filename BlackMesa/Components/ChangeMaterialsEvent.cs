@@ -9,13 +9,13 @@ internal class ChangeMaterialsEvent : MonoBehaviour
 
     private Material[] originalMaterials;
 
-    private void OnEnable()
+    public void ReplaceMaterials()
     {
         originalMaterials = renderer.sharedMaterials;
         renderer.sharedMaterials = materialsToUse;
     }
 
-    private void OnDisable()
+    public void RestoreOriginalMaterials()
     {
         if (originalMaterials == null)
             return;
