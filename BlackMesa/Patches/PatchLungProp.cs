@@ -1,6 +1,7 @@
-﻿using BlackMesa.Components;
+using BlackMesa.Components;
 using HarmonyLib;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace BlackMesa.Patches;
@@ -25,7 +26,7 @@ internal class PatchLungProp
         matcher
             .Advance(1)
             .Insert([
-                new CodeInstruction(OpCodes.Call, typeof(LungPropDisconnectedHandler).GetMethod(nameof(LungPropDisconnectedHandler.TriggerAllEvents), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static))
+                new CodeInstruction(OpCodes.Call, typeof(LungPropDisconnectedHandler).GetMethod(nameof(LungPropDisconnectedHandler.TriggerAllEvents), BindingFlags.NonPublic | BindingFlags.Static))
             ]);
         return matcher.Instructions();
     }
