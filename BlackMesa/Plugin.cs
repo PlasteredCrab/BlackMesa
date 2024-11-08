@@ -35,6 +35,8 @@ namespace BlackMesa
 
         internal static AssetBundle Assets;
 
+        internal static GameObject GenerationRulesPrefab;
+
         // Awake method is called before the Menu Screen initialization
         private void Awake()
         {
@@ -85,13 +87,12 @@ namespace BlackMesa
             }
             DunGenPlus.API.AddDunGenExtender(dunGenExtender);
 
-            var interiorConnectionRules = LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/GenerationRules.prefab");
-            if (interiorConnectionRules == null)
+            GenerationRulesPrefab = LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/GenerationRules.prefab");
+            if (GenerationRulesPrefab == null)
             {
                 Logger.LogError("Failed to find generation rules prefab. Stopping.");
                 return;
             }
-            Instantiate(interiorConnectionRules);
 
             BlackMesaFlow = blackMesaExtendedMod.ExtendedDungeonFlows[0].DungeonFlow;
 

@@ -1,4 +1,4 @@
-﻿using BlackMesa.Components;
+using BlackMesa.Components;
 using HarmonyLib;
 using UnityEngine;
 
@@ -7,6 +7,13 @@ namespace BlackMesa.Patches
     [HarmonyPatch(typeof(StartOfRound))]
     public sealed class PatchStartOfRound
     {
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(StartOfRound.Awake))]
+        private static void AwakePostfix()
+        {
+            Object.Instantiate(BlackMesaInterior.GenerationRulesPrefab);
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(nameof(StartOfRound.ShipLeave))]
         private static void ShipLeavePostFix()
