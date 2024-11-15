@@ -98,7 +98,6 @@ public abstract class StationBase : NetworkBehaviour
             var material = renderer.materials[emissiveMaterialIndices[i]];
             materials[i] = material;
             materialEmissives[i] = material.GetColor(emissiveColorPropertyID);
-            Debug.Log($"Material {i}: {material} color = {materialEmissives[i]}");
         }
     }
 
