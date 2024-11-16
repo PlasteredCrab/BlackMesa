@@ -591,7 +591,8 @@ public class Barnacle : MonoBehaviour, IHittable
         {
             yield return new WaitForSeconds(0.1f);
             var index = eatenItems.Count - 1;
-            DropItem(eatenItems[index]);
+            if (eatenItems[index] != null)
+                DropItem(eatenItems[index]);
             eatenItems.RemoveAt(index);
         }
     }
@@ -608,7 +609,11 @@ public class Barnacle : MonoBehaviour, IHittable
         grabbedPlayer = null;
 
         foreach (var eatenItem in eatenItems)
+        {
+            if (eatenItem == null)
+                continue;
             DropItem(eatenItem);
+        }
         eatenItems.Clear();
 
         barnacles.Remove(this);
