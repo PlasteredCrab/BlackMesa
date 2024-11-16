@@ -1,4 +1,4 @@
-﻿using BlackMesa.Patches;
+using BlackMesa.Patches;
 using GameNetcodeStuff;
 using System;
 using System.Collections;
@@ -166,9 +166,7 @@ public class Barnacle : MonoBehaviour, IHittable
         var heldItem = player.currentlyHeldObjectServer;
         if (heldItem != null)
         {
-            var itemParent = heldItem.parentObject;
-            player.DiscardHeldObject();
-            GrabItem(heldItem, itemParent);
+            GrabItem(heldItem);
         }
         else
         {
@@ -234,14 +232,29 @@ public class Barnacle : MonoBehaviour, IHittable
         rigidBody.centerOfMass = localPosition;
     }
 
-    public void GrabItem(GrabbableObject item, Transform itemParent = null)
+    private static void RemoveItemFromPlayerInventory(PlayerControllerB player, int itemSlot)
+    {
+        var item = player.ItemSlots[itemSlot];
+
+        player.SetSpecialGrabAnimationBool(setTrue: false, item);
+        player.playerBodyAnimator.SetBool("cancelHolding", true);
+
+        HUDManager.Instance.itemSlotIcons[itemSlot].enabled = false;
+        HUDManager.Instance.holdingTwoHandedItem.enabled = false;
+
+        player.SetObjectAsNoLongerHeld(player.isInElevator, player.isInHangarShipRoom, Vector3.zero, item);
+        item.DiscardItemOnClient();
+    }
+
+    public void GrabItem(GrabbableObject item)
     {
         if (!CanGrab)
             return;
 
-        if (itemParent == null)
-            itemParent = item.transform;
+        if (item.playerHeldBy is { } player)
+            RemoveItemFromPlayerInventory(player, player.currentItemSlot);
 
+        var itemParent = item.parentObject ?? item.transform;
         var itemCollider = item.GetComponent<Collider>();
         GetAttachmentPosition(itemParent.position, item.transform.position, itemCollider, out var segment, out var attachPosition, out var holderPosition, out eatingTongueOffset);
         eatingTongueOffset += eatDistance;
