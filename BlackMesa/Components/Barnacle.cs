@@ -1,13 +1,14 @@
-using BlackMesa.Patches;
+﻿using BlackMesa.Patches;
 using GameNetcodeStuff;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace BlackMesa.Components;
 
-public class Barnacle : MonoBehaviour, IHittable
+public class Barnacle : NetworkBehaviour, IHittable
 {
     enum State
     {
@@ -167,18 +168,14 @@ public class Barnacle : MonoBehaviour, IHittable
     {
         if (!CanGrab)
             return;
-        if (player != GameNetworkManager.Instance.localPlayerController)
+        if (!player.IsOwner)
             return;
 
         var heldItem = player.currentlyHeldObjectServer;
-        if (heldItem != null)
-        {
-            GrabItem(heldItem);
-        }
+        if (heldItem != null && heldItem.IsOwner)
+            GrabItemServerRpc(heldItem);
         else
-        {
-            GrabPlayer(player);
-        }
+            GrabPlayerServerRpc(player);
     }
 
     private void GetAttachmentPosition(Vector3 rootPosition, Vector3 hitPosition, Collider collider, out Rigidbody attachSegment, out Vector3 attachPosition, out Vector3 holderPosition, out float tongueOffset)
@@ -253,9 +250,34 @@ public class Barnacle : MonoBehaviour, IHittable
 
         player.SetObjectAsNoLongerHeld(player.isInElevator, player.isInHangarShipRoom, Vector3.zero, item);
         item.DiscardItemOnClient();
+        player.currentlyHeldObjectServer = null;
     }
 
-    public void GrabItem(GrabbableObject item)
+    internal void GrabItem(GrabbableObject item)
+    {
+        if (!item.IsOwner)
+            return;
+        GrabItemServerRpc(item);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void GrabItemServerRpc(NetworkBehaviourReference itemReference)
+    {
+        GrabItemClientRpc(itemReference);
+    }
+
+    [ClientRpc]
+    private void GrabItemClientRpc(NetworkBehaviourReference itemReference)
+    {
+        if (!itemReference.TryGet(out GrabbableObject item))
+        {
+            BlackMesaInterior.Logger.LogError($"{nameof(GrabItemClientRpc)} called with invalid item reference.");
+            return;
+        }
+        GrabItemOnClient(item);
+    }
+
+    private void GrabItemOnClient(GrabbableObject item)
     {
         if (!CanGrab)
             return;
@@ -281,6 +303,23 @@ public class Barnacle : MonoBehaviour, IHittable
         item.EnablePhysics(false);
 
         BeginPulling();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void GrabPlayerServerRpc(NetworkBehaviourReference playerReference)
+    {
+        GrabPlayerClientRpc(playerReference);
+    }
+
+    [ClientRpc]
+    private void GrabPlayerClientRpc(NetworkBehaviourReference playerReference)
+    {
+        if (!playerReference.TryGet(out PlayerControllerB player))
+        {
+            BlackMesaInterior.Logger.LogError($"{nameof(GrabPlayerClientRpc)} called with invalid player reference.");
+            return;
+        }
+        GrabPlayer(player);
     }
 
     public void GrabPlayer(PlayerControllerB player)
@@ -404,6 +443,14 @@ public class Barnacle : MonoBehaviour, IHittable
 
     public void BeginEatingGrabbedObject()
     {
+        if (!IsOwner)
+            return;
+        BeginEatingGrabbedItemClientRpc();
+    }
+
+    [ClientRpc]
+    private void BeginEatingGrabbedItemClientRpc()
+    {
         if (state != State.Pulling)
             return;
 
@@ -429,9 +476,16 @@ public class Barnacle : MonoBehaviour, IHittable
 
     public void SwallowGrabbedItem()
     {
+        if (!IsOwner)
+            return;
         if (IsDead)
             return;
+        SwallowGrabbedItemClientRpc();
+    }
 
+    [ClientRpc]
+    private void SwallowGrabbedItemClientRpc()
+    {
         grabbedItem.parentObject = itemStash;
         grabbedItem.EnableItemMeshes(false);
         eatenItems.Add(grabbedItem);
@@ -441,27 +495,62 @@ public class Barnacle : MonoBehaviour, IHittable
 
     public void BiteGrabbedPlayer(int damage)
     {
+        if (!grabbedPlayer.IsOwner)
+            return;
         if (IsDead)
             return;
 
         if (grabbedPlayer.criticallyInjured)
         {
-            animator.SetTrigger("Swallow Player");
+            SwallowGrabbedPlayerServerRpc();
             return;
         }
 
         grabbedPlayer.DamagePlayer(damage, hasDamageSFX: true, callRPC: true, CauseOfDeath.Crushing);
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    private void SwallowGrabbedPlayerServerRpc()
+    {
+        SwallowGrabbedPlayerClientRpc();
+    }
+
+    [ClientRpc]
+    private void SwallowGrabbedPlayerClientRpc()
+    {
+        animator.SetTrigger("Swallow Player");
+    }
+
     public void KillPlayer()
     {
-        DropPlayer();
+        if (!grabbedPlayer.IsOwner)
+            return;
+        KillPlayerServerRpc();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void KillPlayerServerRpc()
+    {
+        if (grabbedPlayer.isPlayerDead || !grabbedPlayer.AllowPlayerDeath())
+        {
+            DropPlayerWithoutKillingClientRpc();
+            return;
+        }
+
+        KillPlayerClientRpc();
+    }
+
+    [ClientRpc]
+    private void KillPlayerClientRpc()
+    {
         grabbedPlayer.KillPlayer(Vector3.zero, spawnBody: true, CauseOfDeath.Crushing, deathAnimation: 0);
-        // Check if the player was actually killed
-        // AttachRagdoll() may be called inside KillPlayer() if a dead body spawns, so we need to check
-        // for a null player here.
-        if (grabbedPlayer?.deadBody == null)
-            grabbedPlayer = null;
+    }
+
+    [ClientRpc]
+    private void DropPlayerWithoutKillingClientRpc()
+    {
+        DropPlayer();
+        grabbedPlayer = null;
     }
 
     public static void OnRagdollSpawnedForPlayer(PlayerControllerB player)
@@ -500,6 +589,7 @@ public class Barnacle : MonoBehaviour, IHittable
         foreach (var rigidBody in grabbedPlayer.deadBody.bodyParts)
             rigidBody.detectCollisions = false;
 
+        DropPlayer();
         dummyObjectJoint.connectedBody = headRigidbody;
         grabbedBody = grabbedPlayer.deadBody;
         grabbedPlayer = null;
@@ -576,8 +666,20 @@ public class Barnacle : MonoBehaviour, IHittable
             return false;
         if (force <= 0)
             return false;
-        StartCoroutine(Die());
+        StartDyingServerRpc();
         return true;
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void StartDyingServerRpc()
+    {
+        StartDyingClientRpc();
+    }
+
+    [ClientRpc]
+    private void StartDyingClientRpc()
+    {
+        StartCoroutine(Die());
     }
 
     private IEnumerator Die()
@@ -606,7 +708,7 @@ public class Barnacle : MonoBehaviour, IHittable
         }
     }
 
-    private void OnDestroy()
+    public override void OnDestroy()
     {
         if (grabbedItem != null)
         {
