@@ -233,6 +233,8 @@ public class Barnacle : MonoBehaviour, IHittable
     private static void RemoveItemFromPlayerInventory(PlayerControllerB player, int itemSlot)
     {
         var item = player.ItemSlots[itemSlot];
+        if (item == null)
+            return;
 
         player.SetSpecialGrabAnimationBool(setTrue: false, item);
         player.playerBodyAnimator.SetBool("cancelHolding", true);
