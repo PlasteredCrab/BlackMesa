@@ -3,7 +3,6 @@ using GameNetcodeStuff;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace BlackMesa.Components;
@@ -91,7 +90,7 @@ public class Barnacle : MonoBehaviour, IHittable
         tongueRetractSpeed = defaultTongueRetractSpeed;
         tongueDropSpeed = defaultTongueDropSpeed;
 
-        tongueSegmentColliders = new CapsuleCollider[tongueSegments.Length]; tongueSegments.Select(rigidbody => rigidbody.GetComponent<CapsuleCollider>()).ToArray();
+        tongueSegmentColliders = new CapsuleCollider[tongueSegments.Length];
         tongueSegmentMouthOffsets = new float[tongueSegments.Length];
 
         var currentOffset = 0f;
