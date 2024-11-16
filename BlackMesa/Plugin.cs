@@ -108,18 +108,31 @@ namespace BlackMesa
             harmony.PatchAll(typeof(PatchLungProp));
             harmony.PatchAll(typeof(PatchPlayerControllerB));
 
-            const string props = "Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs/Props";
-            InitializeNetworkBehaviour(typeof(HandheldTVCamera));
-            RegisterNetworkPrefab($"{props}/HandheldTV.prefab");
+            const string prefabs = "Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs";
+
+            #region Register hazards
+
+            const string hazards = $"{prefabs}/Hazards";
 
             InitializeNetworkBehaviour(typeof(Tripmine));
-            RegisterNetworkPrefab($"{props}/Tripmine.prefab");
+            RegisterNetworkPrefab($"{hazards}/Laser Tripmine/Tripmine.prefab");
+
+            #endregion
+
+            #region Register props
+
+            const string props = $"{prefabs}/Props";
+
+            InitializeNetworkBehaviour(typeof(HandheldTVCamera));
+            RegisterNetworkPrefab($"{props}/HandheldTV.prefab");
 
             InitializeNetworkBehaviour(typeof(StationBase));
             InitializeNetworkBehaviour(typeof(HealingStation));
             RegisterNetworkPrefab($"{props}/Healing Station.prefab");
             InitializeNetworkBehaviour(typeof(ChargingStation));
             RegisterNetworkPrefab($"{props}/HEV Station 1.prefab");
+
+            #endregion
         }
 
         internal static T LoadAsset<T>(string path) where T : UnityEngine.Object
