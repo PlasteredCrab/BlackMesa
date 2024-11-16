@@ -80,7 +80,7 @@ public class Barnacle : MonoBehaviour, IHittable
 
     private readonly List<GrabbableObject> eatenItems = [];
 
-    private void Start()
+    private void Awake()
     {
         var tongueStart = tongueSegments[0];
         tongueParentTransform = tongueStart.transform.parent;
@@ -105,10 +105,19 @@ public class Barnacle : MonoBehaviour, IHittable
         dummyObjectJoint = dummyObjectBody.GetComponent<Joint>();
         defaultAngularDrag = dummyObjectBody.angularDrag;
 
+        tongueParentTransform.gameObject.SetActive(false);
+    }
+
+    private void Start()
+    {
         animator.SetTrigger("Extend");
         DropTongue();
 
         barnacles.Add(this);
+
+        tongueParentTransform.gameObject.SetActive(true);
+        for (var i = 1; i < tongueSegments.Length; i++)
+            tongueSegments[i].isKinematic = false;
     }
 
     private void DisableHolderPhysics()
