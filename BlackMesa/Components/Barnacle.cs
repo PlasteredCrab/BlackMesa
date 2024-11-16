@@ -83,7 +83,6 @@ public class Barnacle : MonoBehaviour, IHittable
     private void Start()
     {
         var tongueStart = tongueSegments[0];
-        var tongueEnd = tongueSegments[^1];
         tongueParentTransform = tongueStart.transform.parent;
         retractedTongueLocalPosition = tongueStart.transform.localPosition;
 
