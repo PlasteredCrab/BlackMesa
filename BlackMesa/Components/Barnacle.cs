@@ -66,6 +66,7 @@ public class Barnacle : MonoBehaviour, IHittable
     public float targetTongueOffset = 0;
     private float currentTongueOffset = 0;
     private float eatingTongueOffset = 0;
+    private int firstEnabledSegment = 0;
 
     private Transform dummyObjectParent;
     private Rigidbody dummyObjectBody;
@@ -310,6 +311,38 @@ public class Barnacle : MonoBehaviour, IHittable
         }
     }
 
+    private int GetFirstSegmentBelowMouth()
+    {
+        var targetOffset = currentTongueOffset + 1f;
+        for (var i = 0; i < tongueSegments.Length; i++)
+        {
+            if (tongueSegmentMouthOffsets[i] < targetOffset)
+                return i;
+        }
+
+        return tongueSegments.Length;
+    }
+
+    private void UpdateDisabledSegments()
+    {
+        var newFirstEnabledSegment = GetFirstSegmentBelowMouth();
+
+        if (newFirstEnabledSegment < firstEnabledSegment)
+        {
+            while (firstEnabledSegment-- > newFirstEnabledSegment)
+                tongueSegments[firstEnabledSegment].detectCollisions = true;
+            firstEnabledSegment++;
+        }
+        else if (firstEnabledSegment < newFirstEnabledSegment)
+        {
+            while (firstEnabledSegment < newFirstEnabledSegment)
+            {
+                tongueSegments[firstEnabledSegment].detectCollisions = false;
+                firstEnabledSegment++;
+            }
+        }
+    }
+
     private void FixedUpdate()
     {
         if (state == State.Extending && targetTongueOffset == currentTongueOffset)
@@ -334,6 +367,8 @@ public class Barnacle : MonoBehaviour, IHittable
 
         var newPosition = tongueParentTransform.TransformPoint(retractedTongueLocalPosition) + Vector3.down * currentTongueOffset;
         tongueSegments[0].MovePosition(newPosition);
+
+        UpdateDisabledSegments();
     }
 
     private void EnterIdleState()
