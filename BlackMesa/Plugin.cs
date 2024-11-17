@@ -133,7 +133,7 @@ namespace BlackMesa
             InitializeNetworkBehaviour(typeof(HealingStation));
             RegisterNetworkPrefab($"{props}/Healing Station.prefab");
             InitializeNetworkBehaviour(typeof(ChargingStation));
-            RegisterNetworkPrefab($"{props}/HEV Station 1.prefab");
+            RegisterNetworkPrefab($"{props}/HEV Station.prefab");
 
             #endregion
         }
