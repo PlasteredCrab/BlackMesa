@@ -7,6 +7,14 @@ namespace BlackMesa.Patches
     internal static class PatchRoundManager
     {
         [HarmonyPostfix]
+        [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SetLevelObjectVariables))]
+        private static void SetLevelObjectVariablesPostfix(RoundManager __instance)
+        {
+            if (__instance.dungeonGenerator.Generator.DungeonFlow == BlackMesaInterior.BlackMesaFlow)
+                BlackMesaInterior.BatchAllTileModels(__instance.dungeonGenerator.Generator.CurrentDungeon);
+        }
+
+        [HarmonyPostfix]
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnSyncedProps))]
         private static void SpawnSyncedPropsPostfix(RoundManager __instance)
         {

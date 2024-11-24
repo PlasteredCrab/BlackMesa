@@ -1,8 +1,8 @@
 using BepInEx;
 using BepInEx.Logging;
 using BlackMesa.Components;
-using BlackMesa.Generation;
 using BlackMesa.Patches;
+using DunGen;
 using DunGen.Graph;
 using HarmonyLib;
 using LethalLevelLoader;
@@ -219,6 +219,24 @@ namespace BlackMesa
                     continue;
                 audioSource.outputAudioMixerGroup = mixerGroup;
             }
+        }
+
+        internal static void BatchAllTileModels(Dungeon dungeon)
+        {
+            int batchedTiles = 0;
+
+            foreach (var tile in dungeon.AllTiles)
+            {
+                if (tile == null)
+                    continue;
+                var modelsChild = tile.transform.Find("Models");
+                if (modelsChild == null)
+                    continue;
+                StaticBatchingUtility.Combine(modelsChild.gameObject);
+                batchedTiles++;
+            }
+
+            Logger.LogInfo($"Marked {batchedTiles} tiles to be static-batched.");
         }
     }
 
