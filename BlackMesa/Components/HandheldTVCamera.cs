@@ -83,13 +83,20 @@ namespace BlackMesa.Components
             NetworkObject.Despawn();
         }
 
+        public override void Update()
+        {
+            base.Update();
+
+            Camera.gameObject.SetActive(isBeingUsed);
+        }
+
         public override void LateUpdate()
         {
             base.LateUpdate();
             if (isPocketed && playerHeldBy != null)
             {
-                Vector3 positionOffset = new Vector3(0, 1, 0);
-                Vector3 rotationOffset = new Vector3(0, 90, 90);
+                var positionOffset = new Vector3(0, 1, 0);
+                var rotationOffset = new Vector3(0, 90, 90);
 
                 var playerSpineTransform = playerHeldBy.lowerSpine;
                 transform.position = playerSpineTransform.position + positionOffset;

@@ -3,34 +3,43 @@ using UnityEngine.Rendering;
 using UnityEngine;
 using BlackMesa.Components;
 using BlackMesa.Utilities;
+using UnityEngine.Rendering.HighDefinition;
+using System.Runtime.CompilerServices;
 
 namespace BlackMesa
 {
     internal class SecurityCameraManager : MonoBehaviour
     {
-        internal List<SecurityCamera> securityCameras = new List<SecurityCamera>();
-        internal List<HandheldTVCamera> handheldTVCameras = new List<HandheldTVCamera>();
-
-        internal HashSet<Camera> nightVisionCameraSet = new HashSet<Camera>();
-        internal List<Light> nightVisionLights = new List<Light>();
-
         internal static SecurityCameraManager Instance;
+
+        internal List<SecurityCamera> securityCameras = [];
+        internal List<HandheldTVCamera> handheldTVCameras = [];
 
         public MeshRenderer handheldTVTerminal;
         public List<int> handheldTVMaterialIndices;
         public List<BoxCollider> handheldTVTerminalScreenColliders;
-        private Bounds[] handheldTVTerminalScreenBounds;
-        int currentHandheldTVIndex;
 
         public MeshRenderer securityFeedTerminal;
         public Material securityFeedMaterial;
         public List<int> securityCameraMaterialIndices;
         public List<BoxCollider> securityFeedTerminalScreenColliders;
-        private Bounds[] securityFeedTerminalScreenBounds;
+
+        public int camerasToRenderPerFrame = 2;
+
+        int currentHandheldTVIndex;
         int currentSecurityCameraIndex;
 
-        private Camera[] allCameras = [];
-        private Plane[][] allCameraFrustums = [];
+        private Camera[] allOtherCameras = [];
+        private Plane[][] allOtherCamerasFrustums = [];
+        private bool allOtherCameraFrustumsUpdated = false;
+
+        private List<Camera> allControlledCameras = [];
+        private List<Bounds> allControlledCameraScreenBounds = [];
+        private List<Renderer[]> allControlledCameraScreenRenderers = [];
+        private int nextCameraToRender = 0;
+
+        private HashSet<Camera> nightVisionCameraSet = [];
+        private List<Light> nightVisionLights = [];
 
         private const float ActiveTerminalDistance = 15;
         private const float ActiveTerminalDistanceSqr = ActiveTerminalDistance * ActiveTerminalDistance;
@@ -38,21 +47,17 @@ namespace BlackMesa
         private const float ActiveHandheldDistance = 5;
         private const float ActiveHandheldDistanceSqr = ActiveHandheldDistance * ActiveHandheldDistance;
 
-        private void Start()
-        {
-            securityFeedTerminalScreenBounds = new Bounds[securityFeedTerminalScreenColliders.Count];
-            for (var i = 0; i < securityFeedTerminalScreenColliders.Count; i++)
-                securityFeedTerminalScreenBounds[i] = securityFeedTerminalScreenColliders[i].bounds;
-
-            handheldTVTerminalScreenBounds = new Bounds[handheldTVTerminalScreenColliders.Count];
-            for (var i = 0; i < handheldTVTerminalScreenColliders.Count; i++)
-                handheldTVTerminalScreenBounds[i] = handheldTVTerminalScreenColliders[i].bounds;
-        }
-
-        private void AddNightVisionCamera(INightVisionCamera nightVisionCamera)
+        private void AddCamera(INightVisionCamera nightVisionCamera, Bounds screenBounds, params Renderer[] screenRenderers)
         {
             nightVisionCameraSet.Add(nightVisionCamera.Camera);
             nightVisionLights.Add(nightVisionCamera.NightVisionLight);
+
+            allControlledCameras.Add(nightVisionCamera.Camera);
+            allControlledCameraScreenBounds.Add(screenBounds);
+            allControlledCameraScreenRenderers.Add(screenRenderers);
+
+            var hdrpCamera = nightVisionCamera.Camera.GetComponent<HDAdditionalCameraData>();
+            hdrpCamera.hasPersistentHistory = true;
         }
 
         public void AssignSecurityCameraFeed(SecurityCamera securityCamera)
@@ -60,7 +65,7 @@ namespace BlackMesa
             if (currentSecurityCameraIndex >= securityCameraMaterialIndices.Count)
                 return;
 
-            var securityCameraMaterialIndex = securityCameraMaterialIndices[currentSecurityCameraIndex++];
+            var securityCameraMaterialIndex = securityCameraMaterialIndices[currentSecurityCameraIndex];
 
             var material = new Material(securityFeedMaterial)
             {
@@ -70,26 +75,27 @@ namespace BlackMesa
 
             Debug.Log("Added security camera to nightvision camera list");
             securityCameras.Add(securityCamera);
-            AddNightVisionCamera(securityCamera);
+            AddCamera(securityCamera, securityFeedTerminalScreenColliders[currentSecurityCameraIndex].bounds);
+
+            currentSecurityCameraIndex++;
         }
 
         public void AssignHandheldTVFeed(HandheldTVCamera handheldTVCamera, Material material)
         {
             if (currentHandheldTVIndex >= handheldTVMaterialIndices.Count)
-            {
                 return;
-            }
 
             var materials = handheldTVTerminal.sharedMaterials;
             var index = handheldTVMaterialIndices[currentHandheldTVIndex];
             materials[index] = material;
 
             handheldTVTerminal.sharedMaterials = materials;
-            currentHandheldTVIndex++;
 
             Debug.Log("Added handheld TV to nightvision camera list");
             handheldTVCameras.Add(handheldTVCamera);
-            AddNightVisionCamera(handheldTVCamera);
+            AddCamera(handheldTVCamera, handheldTVTerminalScreenColliders[currentHandheldTVIndex].bounds, handheldTVCamera.mainObjectRenderer);
+
+            currentHandheldTVIndex++;
         }
 
         public void Awake()
@@ -105,24 +111,28 @@ namespace BlackMesa
 
         private void GetCameraFrustums()
         {
-            if (allCameras.Length != Camera.allCamerasCount)
+            if (allOtherCameraFrustumsUpdated)
+                return;
+            allOtherCameraFrustumsUpdated = true;
+
+            if (allOtherCameras.Length != Camera.allCamerasCount)
             {
-                allCameras = new Camera[Camera.allCamerasCount];
-                allCameraFrustums = new Plane[allCameras.Length][];
-                for (var i = 0; i < allCameraFrustums.Length; i++)
-                    allCameraFrustums[i] = new Plane[6];
+                allOtherCameras = new Camera[Camera.allCamerasCount];
+                allOtherCamerasFrustums = new Plane[allOtherCameras.Length][];
+                for (var i = 0; i < allOtherCamerasFrustums.Length; i++)
+                    allOtherCamerasFrustums[i] = new Plane[6];
             }
 
-            Camera.GetAllCameras(allCameras);
-            for (var i = 0; i < allCameras.Length; i++)
-                GeometryUtility.CalculateFrustumPlanes(allCameras[i], allCameraFrustums[i]);
+            Camera.GetAllCameras(allOtherCameras);
+            for (var i = 0; i < allOtherCameras.Length; i++)
+                GeometryUtility.CalculateFrustumPlanes(allOtherCameras[i], allOtherCamerasFrustums[i]);
         }
 
         public bool IsBoundingBoxVisibleOnOtherCameras(Bounds bounds, float activeDistanceSqr)
         {
-            for (var i = 0; i < allCameras.Length; i++)
+            for (var i = 0; i < allOtherCameras.Length; i++)
             {
-                var camera = allCameras[i];
+                var camera = allOtherCameras[i];
 
                 // Skip if the camera can't see the default layer.
                 if ((camera.cullingMask & 1) == 0)
@@ -132,58 +142,80 @@ namespace BlackMesa
                 if ((bounds.center - camera.transform.position).sqrMagnitude > activeDistanceSqr)
                     continue;
 
-                if (GeometryUtility.TestPlanesAABB(allCameraFrustums[i], bounds))
+                if (GeometryUtility.TestPlanesAABB(allOtherCamerasFrustums[i], bounds))
                     return true;
             }
 
             return false;
         }
 
-        public void Update()
+        private void LateUpdate()
         {
-            GetCameraFrustums();
+            allOtherCameraFrustumsUpdated = false;
 
-            for (var i = 0; i < securityCameras.Count; i++)
+            foreach (var camera in allControlledCameras)
             {
-                var securityCamera = securityCameras[i];
-                if (securityCamera == null)
+                if (camera == null)
                     continue;
-
-                bool enabled = securityFeedTerminal.isVisible;
-
-                if (enabled && i < securityFeedTerminalScreenBounds.Length)
-                    enabled = IsBoundingBoxVisibleOnOtherCameras(securityFeedTerminalScreenBounds[i], ActiveTerminalDistanceSqr);
-
-                securityCamera.Camera.enabled = enabled;
+                camera.enabled = false;
             }
 
-            for (var i = 0; i < handheldTVCameras.Count; i++)
+            for (var i = 0; i < camerasToRenderPerFrame; i++)
             {
-                var handheldTVCamera = handheldTVCameras[i];
-                if (handheldTVCamera == null)
-                    continue;
+                if (ShouldRenderCamera(nextCameraToRender))
+                    allControlledCameras[nextCameraToRender].enabled = true;
+                nextCameraToRender = (nextCameraToRender + 1) % allControlledCameras.Count;
+            }
 
-                var enabled = handheldTVCamera.isBeingUsed;
+            // Enable the camera the local player is holding so that they don't experience a low
+            // frame rate on their camera.
+            var currentPlayer = GameNetworkManager.Instance?.localPlayerController;
+            if (currentPlayer != null)
+            {
+                if (currentPlayer.spectatedPlayerScript != null)
+                    currentPlayer = currentPlayer.spectatedPlayerScript;
+                var heldItem = currentPlayer.currentlyHeldObjectServer;
 
-                if (enabled)
+                foreach (var handheld in handheldTVCameras)
                 {
-                    enabled = false;
-
-                    if (handheldTVCamera.mainObjectRenderer.isVisible)
-                    {
-                        if (IsBoundingBoxVisibleOnOtherCameras(handheldTVCamera.mainObjectRenderer.bounds, ActiveHandheldDistanceSqr))
-                            enabled = true;
-                    }
-                    
-                    if (!enabled && handheldTVTerminal.isVisible && i < handheldTVTerminalScreenBounds.Length)
-                        enabled = IsBoundingBoxVisibleOnOtherCameras(handheldTVTerminalScreenBounds[i], ActiveTerminalDistanceSqr);
+                    if (handheld != heldItem)
+                        continue;
+                    handheld.Camera.enabled = true;
+                    break;
                 }
-
-                handheldTVCamera.Camera.enabled = enabled;
             }
 
             // Allow CullFactory to be aware that these will likely be visible during the render pass.
             SetNightVisionVisible(true);
+        }
+
+        private bool ShouldRenderCamera(int cameraIndex)
+        {
+            if (cameraIndex < 0 || cameraIndex >= allControlledCameras.Count)
+                return false;
+
+            var camera = allControlledCameras[cameraIndex];
+
+            if (camera == null)
+                return false;
+            if (!camera.gameObject.activeInHierarchy)
+                return false;
+
+            var bounds = allControlledCameraScreenBounds[cameraIndex];
+            GetCameraFrustums();
+            if (IsBoundingBoxVisibleOnOtherCameras(bounds, ActiveTerminalDistanceSqr))
+                return true;
+
+            var renderers = allControlledCameraScreenRenderers[cameraIndex];
+            foreach (var renderer in renderers)
+            {
+                if (!renderer.isVisible)
+                    continue;
+                if (IsBoundingBoxVisibleOnOtherCameras(renderer.bounds, ActiveHandheldDistanceSqr))
+                    return true;
+            }
+
+            return false;
         }
 
         public void UpdateVisibleLights(ScriptableRenderContext _, Camera camera)
