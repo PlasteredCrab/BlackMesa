@@ -2,6 +2,7 @@ using BepInEx;
 using BepInEx.Logging;
 using BlackMesa.Components;
 using BlackMesa.Patches;
+using BlackMesa.Scriptables;
 using DunGen;
 using DunGen.Graph;
 using HarmonyLib;
@@ -111,6 +112,8 @@ namespace BlackMesa
             harmony.PatchAll(typeof(PatchAnimator));
 
             const string prefabs = "Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs";
+
+            LoadAsset<DiffusionProfileMappings>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Diffusion Profile Mappings.asset").Apply();
 
             #region Register hazards
 
