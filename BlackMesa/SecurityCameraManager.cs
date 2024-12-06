@@ -4,7 +4,6 @@ using UnityEngine;
 using BlackMesa.Components;
 using BlackMesa.Utilities;
 using UnityEngine.Rendering.HighDefinition;
-using System.Runtime.CompilerServices;
 
 namespace BlackMesa
 {
@@ -151,6 +150,9 @@ namespace BlackMesa
 
         private void LateUpdate()
         {
+            if (allControlledCameras.Count == 0)
+                return;
+
             allOtherCameraFrustumsUpdated = false;
 
             foreach (var camera in allControlledCameras)
