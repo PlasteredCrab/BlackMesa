@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
@@ -15,6 +15,9 @@ public class DiffusionProfileMappings : ScriptableObject
 
         foreach (var diffusionProfileSettings in diffusionProfileList.diffusionProfiles.value)
         {
+            if (diffusionProfileSettings == null)
+                continue;
+
             var hashAsFloat = BitConverter.Int32BitsToSingle((int)diffusionProfileSettings.profile.hash);
 
             for (var i = 0; i < mappings.Length; i++)
