@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Unity.Netcode;
 using BlackMesa.Utilities;
 using GameNetcodeStuff;
@@ -8,7 +8,7 @@ namespace BlackMesa.Components
 {
     internal class Tripmine : NetworkBehaviour
     {
-        public static Lazy<int> RoomAndDefault = new(() => LayerMask.GetMask("Room", "Default"));
+        public static Lazy<int> RaycastLayers = new(() => LayerMask.GetMask("Room"));
 
         public LineRenderer laserRenderer;
         public BoxCollider laserCollider;
@@ -33,7 +33,7 @@ namespace BlackMesa.Components
 
         public void SetupLaserAndCollider()
         {
-            if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, RoomAndDefault.Value))
+            if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, RaycastLayers.Value))
             {
                 BlackMesaInterior.Logger.LogWarning($"{this} at {transform.position} failed its raycast, disabling.");
                 gameObject.SetActive(false);
@@ -63,7 +63,7 @@ namespace BlackMesa.Components
             // attached to.
             var origin = transform.position - transform.up * 0.2f;
 
-            if (!Physics.Raycast(origin, -transform.forward, out var hit, 3, RoomAndDefault.Value))
+            if (!Physics.Raycast(origin, -transform.forward, out var hit, 3, RaycastLayers.Value))
             {
                 terminalObject.transform.position = origin;
                 return;
