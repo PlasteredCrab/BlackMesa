@@ -1,4 +1,4 @@
-﻿using BlackMesa.Patches;
+using BlackMesa.Patches;
 using GameNetcodeStuff;
 using System;
 using System.Collections;
@@ -224,9 +224,30 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         var heldItem = player.currentlyHeldObjectServer;
         if (heldItem != null && heldItem.IsOwner)
-            GrabItemServerRpc(heldItem);
-        else
-            GrabPlayerServerRpc(player);
+        {
+            // Only grab the item if the player is within ~63 degrees of facing the tongue.
+            var cameraTransform = player.gameplayCamera.transform;
+            Transform closestSegment = tongueSegments[0].transform;
+            var closestSegmentDistanceSqr = float.PositiveInfinity;
+            foreach (var currentSegment in tongueSegments)
+            {
+                var currentSegmentDistanceSqr = (cameraTransform.position - currentSegment.transform.position).sqrMagnitude;
+                if (currentSegmentDistanceSqr < closestSegmentDistanceSqr)
+                {
+                    closestSegment = currentSegment.transform;
+                    closestSegmentDistanceSqr = currentSegmentDistanceSqr;
+                }
+            }
+            var closestSegmentDirection = (closestSegment.position - cameraTransform.position).normalized;
+            var dot = Vector3.Dot(cameraTransform.forward, closestSegmentDirection);
+            if (dot >= 0.45f)
+            {
+                GrabItemServerRpc(heldItem);
+                return;
+            }
+        }
+
+        GrabPlayerServerRpc(player);
     }
 
     private void GetAttachmentPosition(Vector3 rootPosition, Vector3 hitPosition, Collider collider, out Rigidbody attachSegment, out Vector3 attachPosition, out Vector3 holderPosition, out float tongueOffset)
