@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.VFX;
 
 namespace BlackMesa.Components;
 
@@ -52,6 +53,35 @@ public class Barnacle : NetworkBehaviour, IHittable
     public Transform itemStash;
     public Transform mouthAttachment;
 
+    [Header("Audiovisual")]
+    public VisualEffect pukeEffect;
+    public AudioSource mouthAudioSource;
+    public AudioSource attachmentAudioSource;
+    public AudioSource groundAudioSource;
+
+    public AnimationCurve idleSoundTimeCurve;
+    public AudioClip[] idleSounds;
+
+    public AudioClip[] flinchSounds;
+
+    public AudioClip[] contactSounds;
+    public AudioClip[] pullSounds;
+
+    public AudioClip[] grabPlayerSounds;
+    public AudioClip[] grabItemSounds;
+
+    public AudioClip[] bigBiteSounds;
+    public AudioClip[] smallBiteSounds;
+
+    public AudioClip[] swallowSounds;
+
+    public AudioClip[] deathSounds;
+
+    public AudioClip[] splashSoundsA;
+    public AudioClip[] splashSoundsB;
+
+    private const float gravity = 15.9f;
+
     private float tongueRetractSpeed;
     private float tongueDropSpeed;
 
@@ -61,9 +91,9 @@ public class Barnacle : NetworkBehaviour, IHittable
     private State state = State.Idle;
 
     private CapsuleCollider[] tongueSegmentColliders;
-    public float[] tongueSegmentMouthOffsets;
+    private float[] tongueSegmentMouthOffsets;
 
-    public float targetTongueOffset = 0;
+    private float targetTongueOffset = 0;
     private float currentTongueOffset = 0;
     private float eatingTongueOffset = 0;
     private int firstEnabledSegment = 0;
@@ -78,6 +108,9 @@ public class Barnacle : NetworkBehaviour, IHittable
     private DeadBodyInfo grabbedBody;
     private Transform grabbedPlayerPreviousParent;
     private bool centeringHolderPosition = false;
+
+    private float idleSoundTime = -1;
+    private float pukeTravelTime = 2;
 
     private readonly List<GrabbableObject> eatenItems = [];
 
@@ -118,7 +151,22 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         tongueParentTransform.gameObject.SetActive(true);
         for (var i = 1; i < tongueSegments.Length; i++)
+        {
             tongueSegments[i].isKinematic = false;
+            var gravityComponent = tongueSegments[i].GetComponent<RigidbodyGravity>();
+            if (gravityComponent != null)
+                gravityComponent.gravity = Vector3.down * gravity;
+        }
+
+        pukeEffect.SetFloat("Gravity", gravity);
+    }
+
+    private void SetIdleSoundTimer()
+    {
+        if (!IsOwner)
+            return;
+
+        idleSoundTime = idleSoundTimeCurve.Evaluate((float)animationRandomizer.NextDouble());
     }
 
     private void DisableHolderPhysics()
@@ -154,6 +202,9 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (Physics.SphereCast(raycastOrigin.position, 0.1f, Vector3.down, out var hit, maxLength, tongueCastMask))
             distance = hit.distance;
         targetTongueOffset = distance - tongueGroundDistance;
+
+        groundAudioSource.transform.position = hit.point;
+        pukeTravelTime = Mathf.Sqrt(2 * Vector3.Distance(pukeEffect.transform.position, hit.point) / gravity);
 
         SetState(State.Extending);
     }
@@ -277,6 +328,37 @@ public class Barnacle : NetworkBehaviour, IHittable
         GrabItemOnClient(item);
     }
 
+    private AudioClip GetRandomClip(AudioClip[] clips)
+    {
+        if (clips.Length == 0)
+            return null;
+        var index = animationRandomizer.Next(clips.Length);
+        return clips[index];
+    }
+
+    private void PlayRandomSound(AudioSource source, AudioClip[] clips)
+    {
+        if (source == null)
+            return;
+        source.clip = GetRandomClip(clips);
+        if (source.clip == null)
+        {
+            source.Stop();
+            return;
+        }
+        source.Play();
+    }
+
+    private void PlayRandomSoundOneShot(AudioSource source, AudioClip[] clips)
+    {
+        if (source == null)
+            return;
+        var clip = GetRandomClip(clips);
+        if (clip == null)
+            return;
+        source.PlayOneShot(clip);
+    }
+
     private void GrabItemOnClient(GrabbableObject item)
     {
         if (!CanGrab)
@@ -301,6 +383,8 @@ public class Barnacle : NetworkBehaviour, IHittable
         item.parentObject = holder;
         grabbedItem = item;
         item.EnablePhysics(false);
+
+        PlayRandomSoundOneShot(attachmentAudioSource, grabItemSounds);
 
         BeginPulling();
     }
@@ -343,11 +427,21 @@ public class Barnacle : NetworkBehaviour, IHittable
         grabbedPlayer.transform.SetParent(holder, false);
         PatchPlayerControllerB.SetPlayerPositionLocked(player, true);
 
+        PlayRandomSoundOneShot(mouthAudioSource, grabPlayerSounds);
+
         BeginPulling();
     }
 
     public void BeginPulling()
     {
+        PlayRandomSound(attachmentAudioSource, contactSounds);
+        StartCoroutine(BeginPullingCoroutine());
+    }
+
+    private IEnumerator BeginPullingCoroutine()
+    {
+        yield return new WaitForSeconds(0.2f);
+
         animator.SetTrigger("Pull");
         SetState(State.Pulling);
         centeringHolderPosition = false;
@@ -361,6 +455,11 @@ public class Barnacle : NetworkBehaviour, IHittable
         targetTongueOffset = currentTongueOffset - distance;
     }
 
+    public void PlayYankSound()
+    {
+        PlayRandomSound(mouthAudioSource, pullSounds);
+    }
+
     private void Update()
     {
         if (centeringHolderPosition)
@@ -370,6 +469,35 @@ public class Barnacle : NetworkBehaviour, IHittable
 
             holder.position = Vector3.Lerp(holder.position, centerPoint, 6 * Time.deltaTime);
         }
+
+        if (!IsOwner)
+            return;
+
+        if (state == State.Idle)
+        {
+            idleSoundTime -= Time.deltaTime;
+            if (idleSoundTime <= 0)
+            {
+                PlayIdleSoundServerRpc();
+                SetIdleSoundTimer();
+            }
+        }
+    }
+
+    [ServerRpc]
+    private void PlayIdleSoundServerRpc()
+    {
+        var soundIndex = animationRandomizer.Next(idleSounds.Length);
+        PlayIdleSoundClientRpc(soundIndex);
+    }
+
+    [ClientRpc]
+    private void PlayIdleSoundClientRpc(int index)
+    {
+        if (index < 0 || index >= idleSounds.Length)
+            return;
+        mouthAudioSource.clip = idleSounds[index];
+        mouthAudioSource.Play();
     }
 
     private int GetFirstSegmentBelowMouth()
@@ -472,6 +600,8 @@ public class Barnacle : NetworkBehaviour, IHittable
         dummyObject.SetParent(mouthAttachment, true);
         dummyObject.localPosition = Vector3.zero;
         centeringHolderPosition = true;
+
+        PlayRandomSound(mouthAudioSource, swallowSounds);
     }
 
     public void SwallowGrabbedItem()
@@ -500,13 +630,23 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (IsDead)
             return;
 
-        if (grabbedPlayer.criticallyInjured)
+        if (grabbedPlayer.criticallyInjured || !grabbedPlayer.AllowPlayerDeath())
         {
             SwallowGrabbedPlayerServerRpc();
             return;
         }
 
         grabbedPlayer.DamagePlayer(damage, hasDamageSFX: true, callRPC: true, CauseOfDeath.Crushing);
+    }
+
+    public void PlayBigBiteSound()
+    {
+        PlayRandomSound(mouthAudioSource, bigBiteSounds);
+    }
+
+    public void PlaySmallBiteSound()
+    {
+        PlayRandomSound(mouthAudioSource, smallBiteSounds);
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -682,6 +822,20 @@ public class Barnacle : NetworkBehaviour, IHittable
         StartCoroutine(Die());
     }
 
+    public void PlayPukeEffect()
+    {
+        pukeEffect.Reinit();
+        pukeEffect.Play();
+        StartCoroutine(PlayPukeSoundsCoroutine());
+    }
+
+    private IEnumerator PlayPukeSoundsCoroutine()
+    {
+        yield return new WaitForSeconds(pukeTravelTime);
+        PlayRandomSound(groundAudioSource, splashSoundsA);
+        PlayRandomSoundOneShot(groundAudioSource, splashSoundsB);
+    }
+
     private IEnumerator Die()
     {
         SetState(State.Dead);
@@ -697,6 +851,8 @@ public class Barnacle : NetworkBehaviour, IHittable
         grabbedPlayer = null;
 
         yield return new WaitForSeconds(1.33f);
+
+        PlayPukeEffect();
 
         while (eatenItems.Count > 0)
         {
