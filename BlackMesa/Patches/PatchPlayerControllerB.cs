@@ -1,4 +1,4 @@
-﻿using BlackMesa.Components;
+using BlackMesa.Components;
 using GameNetcodeStuff;
 using HarmonyLib;
 using System;
@@ -54,7 +54,6 @@ internal class PatchPlayerControllerB
     [HarmonyPatch(nameof(PlayerControllerB.SpawnDeadBody))]
     private static void SpawnDeadBodyPostfix(PlayerControllerB __instance)
     {
-        Debug.Log($"Spawn dead body");
         Barnacle.OnRagdollSpawnedForPlayer(__instance);
     }
 }
