@@ -33,7 +33,7 @@ namespace BlackMesa.Components
 
         public void SetupLaserAndCollider()
         {
-            if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, RaycastLayers.Value))
+            if (!Physics.Raycast(transform.position, -transform.up, out var hit, float.PositiveInfinity, RaycastLayers.Value, QueryTriggerInteraction.Ignore))
             {
                 BlackMesaInterior.Logger.LogWarning($"{this} at {transform.position} failed its raycast, disabling.");
                 gameObject.SetActive(false);

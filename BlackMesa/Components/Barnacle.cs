@@ -179,7 +179,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         DisableHolderPhysics();
 
         var distance = maxLength;
-        if (Physics.SphereCast(raycastOrigin.position, 0.1f, Vector3.down, out var hit, maxLength, tongueCastMask))
+        if (Physics.SphereCast(raycastOrigin.position, 0.1f, Vector3.down, out var hit, maxLength, tongueCastMask, QueryTriggerInteraction.Ignore))
             distance = hit.distance;
         targetTongueOffset = distance - tongueGroundDistance;
 
