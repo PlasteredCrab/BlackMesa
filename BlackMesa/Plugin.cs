@@ -21,6 +21,7 @@ namespace BlackMesa
 {
 
     [BepInPlugin(GUID, NAME, VERSION)]
+    [BepInDependency("imabatby.lethallevelloader")]
     public class BlackMesaInterior : BaseUnityPlugin
     {
         public const string GUID = "Plastered_Crab.BlackMesaInterior";
