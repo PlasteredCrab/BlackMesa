@@ -8,6 +8,7 @@ using DunGen.Graph;
 using HarmonyLib;
 using LethalLevelLoader;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -37,6 +38,8 @@ namespace BlackMesa
         internal static AssetBundle Assets;
 
         internal static GameObject GenerationRulesPrefab;
+
+        internal static List<GameObject> PrefabsWithAudioSources = [];
 
         // Awake method is called before the Menu Screen initialization
         private void Awake()
@@ -169,8 +172,6 @@ namespace BlackMesa
             return AssetDatabase.LoadAssetAtPath<T>(path);
         }
 
-        private static AudioMixerGroup[] mixerGroups;
-
         private static void InitializeNetworkBehaviour(Type type)
         {
             // Call the RPC initializer methods to register the RPC handlers
@@ -202,28 +203,57 @@ namespace BlackMesa
             // Register the prefab to Unity netcode.
             PatchNetworkManager.AddNetworkPrefab(prefab);
 
-            // Fix up the mixer groups for all audio sources.
-            mixerGroups ??= Resources.FindObjectsOfTypeAll<AudioMixerGroup>();
+            PrefabsWithAudioSources.Add(prefab);
+        }
 
-            foreach (var audioSource in prefab.GetComponentsInChildren<AudioSource>())
+        private static List<AudioMixerGroup> GetVanillaAudioMixerGroups()
+        {
+            var seenMixerNames = new HashSet<string>();
+            var mixerGroups = new List<AudioMixerGroup>();
+
+            foreach (var mixer in Resources.FindObjectsOfTypeAll<AudioMixer>())
             {
-                if (audioSource.outputAudioMixerGroup == null)
-                {
-                    Logger.LogWarning($"{audioSource} on the prefab {prefab} from path \"{path}\" has a null output.");
+                if (seenMixerNames.Contains(mixer.name))
                     continue;
-                }
-                AudioMixerGroup mixerGroup = null;
-                foreach (var candidateMixerGroup in mixerGroups)
+                seenMixerNames.Add(mixer.name);
+                foreach (var mixerGroup in mixer.FindMatchingGroups(""))
+                    mixerGroups.Add(mixerGroup);
+            }
+
+            return mixerGroups;
+        }
+
+        internal static void FixAudioSources()
+        {
+            var mixerGroups = GetVanillaAudioMixerGroups();
+
+            foreach (var prefab in PrefabsWithAudioSources)
+            {
+                foreach (var audioSource in prefab.GetComponentsInChildren<AudioSource>())
                 {
-                    if (candidateMixerGroup.name == audioSource.outputAudioMixerGroup.name)
+                    if (audioSource.outputAudioMixerGroup == null)
                     {
-                        mixerGroup = candidateMixerGroup;
-                        break;
+                        Logger.LogWarning($"{audioSource} on the prefab {prefab} has a null output.");
+                        continue;
                     }
+                    AudioMixerGroup mixerGroup = null;
+                    foreach (var candidateMixerGroup in mixerGroups)
+                    {
+                        if (candidateMixerGroup.name == audioSource.outputAudioMixerGroup.name)
+                        {
+                            mixerGroup = candidateMixerGroup;
+                            break;
+                        }
+                    }
+                    if (mixerGroup == null)
+                        continue;
+                    if (mixerGroup == audioSource.outputAudioMixerGroup)
+                    {
+                        Logger.LogWarning($"Replacement audio mixer group is the same as the original for {audioSource}.");
+                        continue;
+                    }
+                    audioSource.outputAudioMixerGroup = mixerGroup;
                 }
-                if (mixerGroup == null)
-                    continue;
-                audioSource.outputAudioMixerGroup = mixerGroup;
             }
         }
 

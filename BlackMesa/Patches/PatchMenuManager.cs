@@ -1,4 +1,4 @@
-﻿using BlackMesa.Components;
+using BlackMesa.Components;
 using HarmonyLib;
 
 namespace BlackMesa.Patches;
@@ -10,6 +10,7 @@ internal static class PatchMenuManager
     [HarmonyPatch(nameof(MenuManager.Start))]
     private static void StartPostfix()
     {
+        BlackMesaInterior.FixAudioSources();
         LightSwitcher.CacheVanillaLightSounds();
     }
 }
