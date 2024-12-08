@@ -32,6 +32,7 @@ public class BarnacleSounds : NetworkBehaviour
 
     public AudioClip[] deathSounds;
 
+    public AudioClip[] pukeSounds;
     public AudioClip[] splashSoundsA;
     public AudioClip[] splashSoundsB;
 
@@ -119,6 +120,11 @@ public class BarnacleSounds : NetworkBehaviour
     public void PlayFlinchSound()
     {
         PlayRandomSound(mouthAudioSource, flinchSounds);
+    }
+
+    public void PlayPukeSound()
+    {
+        PlayRandomSound(mouthAudioSource, pukeSounds);
     }
 
     internal void PlaySplashSound()

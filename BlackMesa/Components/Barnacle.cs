@@ -716,6 +716,7 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     public void SpitPlayerGuts()
     {
+        sounds.PlayPukeSound();
         PlayPukeEffect();
     }
 
