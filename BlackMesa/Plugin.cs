@@ -120,6 +120,7 @@ namespace BlackMesa
             const string hazards = $"{prefabs}/Hazards";
 
             InitializeNetworkBehaviour(typeof(Barnacle));
+            InitializeNetworkBehaviour(typeof(BarnacleSounds));
             RegisterNetworkPrefab($"{hazards}/Barnacle/Barnacle.prefab");
 
             InitializeNetworkBehaviour(typeof(Tripmine));
