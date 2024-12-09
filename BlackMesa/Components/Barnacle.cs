@@ -17,6 +17,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         Idle,
         Pulling,
         Eating,
+        Flinching,
         Dead,
     }
 
@@ -69,6 +70,7 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     private State state = State.Idle;
     private float eatingTimeLeft = 0;
+    private float flinchTimeLeft = 0;
 
     private CapsuleCollider[] tongueSegmentColliders;
     private float[] tongueSegmentMouthOffsets;
@@ -446,6 +448,19 @@ public class Barnacle : NetworkBehaviour, IHittable
             }
         }
 
+        if (state == State.Flinching)
+        {
+            animator.SetInteger("Flinch", -1);
+
+            flinchTimeLeft -= Time.deltaTime;
+
+            if (flinchTimeLeft <= 0)
+            {
+                animator.SetTrigger("Extend");
+                DropTongue();
+            }
+        }
+
         if (!IsOwner)
             return;
 
@@ -754,6 +769,41 @@ public class Barnacle : NetworkBehaviour, IHittable
         dummyObjectJoint.connectedBody = null;
         dummyObject.position = transform.position;
         dummyObject.rotation = Quaternion.identity;
+    }
+
+    public void Stun(float duration)
+    {
+        StunServerRpc(duration);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void StunServerRpc(float duration)
+    {
+        StunClientRpc(duration);
+    }
+
+    [ClientRpc]
+    private void StunClientRpc(float duration)
+    {
+        SetState(State.Flinching);
+        flinchTimeLeft = duration;
+
+        animator.SetInteger("Flinch", animationRandomizer.Next(2));
+        animator.ResetTrigger("Bite Player");
+        animator.ResetTrigger("Swallow Player");
+        animator.ResetTrigger("Eat Item");
+        animator.ResetTrigger("Finish Eating");
+
+        sounds.PlayFlinchSound();
+
+        if (grabbedItem != null)
+        {
+            DropItem(grabbedItem);
+            grabbedItem = null;
+        }
+
+        DropPlayer();
+        grabbedPlayer = null;
     }
 
     bool IHittable.Hit(int force, Vector3 hitDirection, PlayerControllerB playerWhoHit, bool playHitSFX, int hitID)
