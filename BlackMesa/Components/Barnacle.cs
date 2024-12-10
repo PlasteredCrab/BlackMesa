@@ -44,8 +44,6 @@ public class Barnacle : NetworkBehaviour, IHittable
     [Header("Grabbing")]
     public Transform dummyObject;
     public Transform holder;
-    public Vector3 playerCenterOfMass;
-    public float playerAngularDrag;
     public float holderPositionScale;
 
     [Header("Pulling")]
@@ -87,9 +85,10 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     private GrabbableObject grabbedItem;
     private PlayerControllerB grabbedPlayer;
-    private DeadBodyInfo grabbedBody;
     private Transform grabbedPlayerPreviousParent;
+    private DeadBodyInfo grabbedBody;
     private bool centeringHolderPosition = false;
+    private Vector3 centeredHolderLocalPosition;
 
     private float idleSoundTime = -1;
     private float pukeTravelTime = 2;
@@ -232,14 +231,10 @@ public class Barnacle : NetworkBehaviour, IHittable
         GrabPlayerServerRpc(player);
     }
 
-    private void GetAttachmentPosition(Vector3 rootPosition, Vector3 hitPosition, Collider collider, out Rigidbody attachSegment, out Vector3 attachPosition, out Vector3 holderPosition, out float tongueOffset)
+    private int GetNearestSegmentToPosition(Vector3 position)
     {
-        attachSegment = tongueSegments[^1];
-        tongueOffset = tongueSegmentMouthOffsets[^1];
-        attachPosition = hitPosition;
-        holderPosition = Vector3.zero;
-
         var closestDistanceSqr = float.PositiveInfinity;
+        var closestSegmentIndex = tongueSegments.Length - 1;
 
         for (var i = 0; i < tongueSegments.Length; i++)
         {
@@ -247,29 +242,15 @@ public class Barnacle : NetworkBehaviour, IHittable
             var segmentTransform = segmentCollider.transform;
             var segmentCenter = segmentTransform.TransformPoint(segmentCollider.center);
 
-            var distanceSqr = (hitPosition - segmentCenter).sqrMagnitude;
+            var distanceSqr = (position - segmentCenter).sqrMagnitude;
             if (distanceSqr < closestDistanceSqr)
             {
-                var segmentUp = segmentTransform.right;
                 closestDistanceSqr = distanceSqr;
-                attachSegment = tongueSegments[i];
-                attachPosition = segmentCollider.ClosestPoint(hitPosition);
-                tongueOffset = tongueSegmentMouthOffsets[i] + Vector3.Dot(attachPosition - segmentTransform.position, segmentUp);
+                closestSegmentIndex = i;
             }
         }
 
-        if (collider != null)
-        {
-            var closestPointOnTarget = collider.ClosestPoint(attachPosition);
-            holderPosition = attachPosition + Vector3.Scale(rootPosition - closestPointOnTarget, Vector3.one * holderPositionScale);
-        }
-    }
-
-    private void DisableAllPhysics()
-    {
-        DisableHolderPhysics();
-        foreach (var tongueSegment in tongueSegments)
-            tongueSegment.isKinematic = true;
+        return closestSegmentIndex;
     }
 
     private Vector3 GetColliderCenter(Collider collider)
@@ -280,7 +261,42 @@ public class Barnacle : NetworkBehaviour, IHittable
             return sphere.center;
         if (collider is CapsuleCollider capsule)
             return capsule.center;
+        if (collider is CharacterController character)
+            return character.center;
         return Vector3.zero;
+    }
+
+    private void GetAttachmentPosition(Vector3 rootPosition, Vector3 hitPosition, Collider collider, out Rigidbody attachSegment, out Vector3 attachPosition, out Vector3 holderPosition, out Vector3 centerOfMass, out float tongueOffset)
+    {
+        var closestIndex = GetNearestSegmentToPosition(hitPosition);
+
+        attachSegment = tongueSegments[closestIndex];
+        attachPosition = tongueSegmentColliders[closestIndex].ClosestPoint(hitPosition);
+
+        var rootOffset = rootPosition - hitPosition;
+        if (collider != null)
+        {
+            var contactPoint = collider.ClosestPoint(attachPosition);
+            contactPoint = Vector3.Lerp(hitPosition, contactPoint, holderPositionScale);
+            rootOffset = rootPosition - contactPoint;
+        }
+        holderPosition = attachPosition + rootOffset;
+
+        centerOfMass = attachPosition;
+
+        if (collider != null)
+            centerOfMass = collider.transform.TransformPoint(GetColliderCenter(collider)) - rootPosition + holderPosition;
+
+        var segmentPosition = attachSegment.transform.position;
+        var segmentUp = attachSegment.transform.right;
+        tongueOffset = tongueSegmentMouthOffsets[closestIndex] + Vector3.Dot(attachPosition - segmentPosition, segmentUp);
+    }
+
+    private void DisableAllPhysics()
+    {
+        DisableHolderPhysics();
+        foreach (var tongueSegment in tongueSegments)
+            tongueSegment.isKinematic = true;
     }
 
     private static void SetCenterOfMassToWorldPosition(Rigidbody rigidBody, Vector3 position)
@@ -341,15 +357,16 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         var itemParent = item.parentObject ?? item.transform;
         var itemCollider = item.GetComponent<Collider>();
-        GetAttachmentPosition(itemParent.position, item.transform.position, itemCollider, out var segment, out var attachPosition, out var holderPosition, out eatingTongueOffset);
+        GetAttachmentPosition(itemParent.position, item.transform.position, itemCollider, out var segment, out var attachPosition, out var holderPosition, out var centerOfMass, out eatingTongueOffset);
         eatingTongueOffset += eatDistance;
 
         dummyObject.SetPositionAndRotation(attachPosition, itemParent.rotation);
         dummyObjectJoint.connectedBody = segment;
-        SetCenterOfMassToWorldPosition(dummyObjectBody, item.transform.TransformPoint(GetColliderCenter(itemCollider)));
+        SetCenterOfMassToWorldPosition(dummyObjectBody, centerOfMass);
         dummyObjectBody.angularDrag = defaultAngularDrag;
         holder.position = holderPosition;
         holder.localRotation = Quaternion.identity;
+        centeredHolderLocalPosition = Vector3.zero;
         EnableHolderPhysics();
 
         item.parentObject = holder;
@@ -375,23 +392,26 @@ public class Barnacle : NetworkBehaviour, IHittable
             BlackMesaInterior.Logger.LogError($"{nameof(GrabPlayerClientRpc)} called with invalid player reference.");
             return;
         }
-        GrabPlayer(player);
+        GrabPlayerOnClient(player);
     }
 
-    public void GrabPlayer(PlayerControllerB player)
+    public void GrabPlayerOnClient(PlayerControllerB player)
     {
         if (!CanGrab)
             return;
 
-        GetAttachmentPosition(player.transform.position, player.transform.position + (Vector3.up * 2.5f), player.playerCollider, out var segment, out var attachPosition, out var holderPosition, out eatingTongueOffset);
+        var rootPosition = player.transform.position;
+        var eyePosition = player.gameplayCamera.transform.position;
+        GetAttachmentPosition(rootPosition, eyePosition, player.playerCollider, out var segment, out var attachPosition, out var holderPosition, out var centerOfMass, out eatingTongueOffset);
         eatingTongueOffset += eatDistance;
 
         dummyObject.SetPositionAndRotation(attachPosition, Quaternion.identity);
         dummyObjectJoint.connectedBody = segment;
-        dummyObjectBody.centerOfMass = playerCenterOfMass;
-        dummyObjectBody.angularDrag = playerAngularDrag;
+        SetCenterOfMassToWorldPosition(dummyObjectBody, centerOfMass);
+        dummyObjectBody.angularDrag = 5;
         holder.position = holderPosition;
         holder.localRotation = Quaternion.identity;
+        centeredHolderLocalPosition = rootPosition - eyePosition;
         EnableHolderPhysics();
 
         grabbedPlayerPreviousParent = player.transform.parent;
@@ -416,7 +436,6 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         animator.SetTrigger("Pull");
         SetState(State.Pulling);
-        centeringHolderPosition = false;
     }
 
     public void YankTongue(float distance)
@@ -430,12 +449,7 @@ public class Barnacle : NetworkBehaviour, IHittable
     private void Update()
     {
         if (centeringHolderPosition)
-        {
-            var holderDistance = Vector3.Dot(holder.position - raycastOrigin.position, raycastOrigin.up);
-            var centerPoint = raycastOrigin.position + raycastOrigin.up * holderDistance;
-
-            holder.position = Vector3.Lerp(holder.position, centerPoint, 6 * Time.deltaTime);
-        }
+            holder.localPosition = Vector3.Lerp(holder.localPosition, centeredHolderLocalPosition, 6 * Time.deltaTime);
 
         if (state == State.Eating)
         {
@@ -573,6 +587,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         }
 
         targetTongueOffset = eatingTongueOffset;
+        centeringHolderPosition = true;
         SetState(State.Eating);
     }
 
@@ -582,7 +597,6 @@ public class Barnacle : NetworkBehaviour, IHittable
         dummyObjectJoint.connectedBody = null;
         dummyObject.SetParent(mouthAttachment, true);
         dummyObject.localPosition = Vector3.zero;
-        centeringHolderPosition = true;
     }
 
     public void SwallowGrabbedItem()
@@ -601,6 +615,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         grabbedItem.EnableItemMeshes(false);
         eatenItems.Add(grabbedItem);
         grabbedItem = null;
+        centeringHolderPosition = false;
     }
 
     public void BiteGrabbedPlayer(int damage)
@@ -707,6 +722,8 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     public void DeactivateRagdoll()
     {
+        centeringHolderPosition = false;
+
         if (grabbedBody == null)
             return;
 
