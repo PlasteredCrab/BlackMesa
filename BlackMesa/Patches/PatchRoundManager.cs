@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using BlackMesa.Components;
+using HarmonyLib;
 using System.Collections.Generic;
 using Unity.Netcode;
 
@@ -11,7 +12,12 @@ namespace BlackMesa.Patches
         private static void SetLevelObjectVariablesPostfix(RoundManager __instance)
         {
             if (__instance.dungeonGenerator.Generator.DungeonFlow == BlackMesaInterior.BlackMesaFlow)
+            {
                 BlackMesaInterior.BatchAllTileModels(__instance.dungeonGenerator.Generator.CurrentDungeon);
+
+                if (LightController.instance != null)
+                    LightController.instance.PopulateLightGroups();
+            }
         }
 
         [HarmonyPostfix]

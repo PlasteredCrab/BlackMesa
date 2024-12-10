@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.ProBuilder;
 
 namespace BlackMesa.Components;
 
@@ -25,6 +23,8 @@ public class LightController : MonoBehaviour
         Flickering,
     }
 
+    internal static LightController instance;
+
     public AnimationCurve flickeringLightEnabledAnimation;
     public int groupCount;
     public float flickerTime = 0.37f;
@@ -34,7 +34,12 @@ public class LightController : MonoBehaviour
     private State state = State.TurningOn;
     private float animationTime = 0;
 
-    private void PopulateLightGroups()
+    private void Awake()
+    {
+        instance = this;
+    }
+
+    internal void PopulateLightGroups()
     {
         if (lightSwitcherGroups != null)
             return;
@@ -85,7 +90,8 @@ public class LightController : MonoBehaviour
 
     public void FlickerLights()
     {
-        PopulateLightGroups();
+        if (lightSwitcherGroups == null)
+            return;
 
         foreach (var group in lightSwitcherGroups)
         {
@@ -99,10 +105,11 @@ public class LightController : MonoBehaviour
 
     private void Update()
     {
-        if (state == State.Idle)
+        if (lightSwitcherGroups == null)
             return;
 
-        PopulateLightGroups();
+        if (state == State.Idle)
+            return;
 
         animationTime += Time.deltaTime;
         var allComplete = true;
