@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
@@ -11,6 +12,12 @@ public class DiffusionProfileMappings : ScriptableObject
 
     internal void Apply()
     {
+        if (mappings == null)
+        {
+            BlackMesaInterior.Logger.LogError($"Diffusion profile mappings were missing\n{new StackTrace()}");
+            return;
+        }
+
         var diffusionProfileList = HDRenderPipelineGlobalSettings.instance.GetOrCreateDiffusionProfileList();
 
         foreach (var diffusionProfileSettings in diffusionProfileList.diffusionProfiles.value)
