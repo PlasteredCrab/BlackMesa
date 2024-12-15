@@ -87,8 +87,10 @@ public class Barnacle : NetworkBehaviour, IHittable
     private PlayerControllerB grabbedPlayer;
     private Transform grabbedPlayerPreviousParent;
     private DeadBodyInfo grabbedBody;
+    private EnemyAI grabbedEnemy;
     private bool centeringHolderPosition = false;
     private Vector3 centeredHolderLocalPosition;
+    private bool centeringDummyObjectRotation = false;
 
     private float idleSoundTime = -1;
     private float pukeTravelTime = 2;
@@ -190,7 +192,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         SetState(State.Extending);
     }
 
-    internal bool HasGrabbedObject => grabbedItem != null || grabbedPlayer != null || grabbedBody != null;
+    internal bool HasGrabbedObject => !(grabbedItem is null && grabbedPlayer is null && grabbedBody is null && grabbedEnemy is null);
 
     internal bool CanGrab => !HasGrabbedObject && (state == State.Extending || state == State.Idle);
 
@@ -203,8 +205,24 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (!player.IsOwner)
             return;
 
+        foreach (var enemy in PatchEnemyAI.AllEnemies)
+        {
+            if (enemy.isEnemyDead)
+                continue;
+            if (enemy is FlowerSnakeEnemy flowerSnake && flowerSnake.clingingToPlayer == player && flowerSnake.clingPosition == 4)
+            {
+                GrabEnemy(flowerSnake);
+                return;
+            }
+            if (enemy is CentipedeAI centipede && centipede.clingingToPlayer == player)
+            {
+                GrabEnemy(centipede);
+                return;
+            }
+        }
+
         var heldItem = player.currentlyHeldObjectServer;
-        if (heldItem != null && heldItem.IsOwner)
+        if (heldItem != null && heldItem.IsOwner && !heldItem.itemProperties.twoHandedAnimation)
         {
             // Only grab the item if the player is within ~63 degrees of facing the tongue.
             var cameraTransform = player.gameplayCamera.transform;
@@ -351,6 +369,8 @@ public class Barnacle : NetworkBehaviour, IHittable
     {
         if (!CanGrab)
             return;
+        if (item.itemProperties.twoHandedAnimation)
+            return;
 
         if (item.playerHeldBy is { } player)
             RemoveItemFromPlayerInventory(player, player.currentItemSlot);
@@ -360,18 +380,20 @@ public class Barnacle : NetworkBehaviour, IHittable
         GetAttachmentPosition(itemParent.position, item.transform.position, itemCollider, out var segment, out var attachPosition, out var holderPosition, out var centerOfMass, out eatingTongueOffset);
         eatingTongueOffset += eatDistance;
 
-        dummyObject.SetPositionAndRotation(attachPosition, itemParent.rotation);
+        dummyObject.SetPositionAndRotation(attachPosition, Quaternion.identity);
         dummyObjectJoint.connectedBody = segment;
         SetCenterOfMassToWorldPosition(dummyObjectBody, centerOfMass);
         dummyObjectBody.angularDrag = defaultAngularDrag;
-        holder.position = holderPosition;
-        holder.localRotation = Quaternion.identity;
+        holder.SetPositionAndRotation(holderPosition, itemParent.rotation);
         centeredHolderLocalPosition = Vector3.zero;
         EnableHolderPhysics();
 
         item.parentObject = holder;
         grabbedItem = item;
         item.EnablePhysics(false);
+
+        if (item is RagdollGrabbableObject ragdoll)
+            ragdoll.heldByEnemy = true;
 
         sounds.PlayGrabItemSound();
 
@@ -400,6 +422,8 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (!CanGrab)
             return;
 
+        grabbedPlayerPreviousParent = player.transform.parent;
+
         var rootPosition = player.transform.position;
         var eyePosition = player.gameplayCamera.transform.position;
         GetAttachmentPosition(rootPosition, eyePosition, player.playerCollider, out var segment, out var attachPosition, out var holderPosition, out var centerOfMass, out eatingTongueOffset);
@@ -409,17 +433,106 @@ public class Barnacle : NetworkBehaviour, IHittable
         dummyObjectJoint.connectedBody = segment;
         SetCenterOfMassToWorldPosition(dummyObjectBody, centerOfMass);
         dummyObjectBody.angularDrag = 5;
-        holder.position = holderPosition;
-        holder.localRotation = Quaternion.identity;
+        holder.SetPositionAndRotation(holderPosition, grabbedPlayerPreviousParent.transform.rotation);
         centeredHolderLocalPosition = rootPosition - eyePosition;
         EnableHolderPhysics();
 
-        grabbedPlayerPreviousParent = player.transform.parent;
         grabbedPlayer = player;
         grabbedPlayer.transform.SetParent(holder, false);
         PatchPlayerControllerB.SetPlayerPositionLocked(player, true);
 
         sounds.PlayGrabPlayerSound();
+
+        BeginPulling();
+    }
+
+    public void GrabEnemy(EnemyAI enemy)
+    {
+        if (!(enemy is MaskedPlayerEnemy || enemy is FlowerSnakeEnemy || enemy is CentipedeAI))
+            return;
+
+        GrabEnemyServerRpc(enemy);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void GrabEnemyServerRpc(NetworkBehaviourReference enemyReference)
+    {
+        GrabEnemyClientRpc(enemyReference);
+    }
+
+    [ClientRpc]
+    private void GrabEnemyClientRpc(NetworkBehaviourReference enemyReference)
+    {
+        if (!enemyReference.TryGet(out EnemyAI enemy))
+        {
+            BlackMesaInterior.Logger.LogError($"{nameof(GrabEnemyClientRpc)} called with invalid enemy reference.");
+            return;
+        }
+        GrabEnemyOnClient(enemy);
+    }
+
+    private static Vector3 GetEnemyAttachmentPoint(EnemyAI enemy)
+    {
+        if (enemy is MaskedPlayerEnemy)
+            return enemy.eye.position;
+        return enemy.transform.position;
+    }
+
+    private static Collider GetEnemyCollider(EnemyAI enemy)
+    {
+        return enemy.GetComponentInChildren<EnemyAICollisionDetect>()?.GetComponent<Collider>();
+    }
+
+    private static void SetEnemyGrabbedAnimations(EnemyAI enemy)
+    {
+        if (enemy is MaskedPlayerEnemy maskedEnemy)
+        {
+            maskedEnemy.creatureAnimator.SetBool("HandsOut", false);
+            maskedEnemy.creatureAnimator.SetBool("IsMoving", false);
+            maskedEnemy.creatureAnimator.SetBool("Running", false);
+            maskedEnemy.CancelSpecialAnimationWithPlayer();
+            return;
+        }
+        if (enemy is FlowerSnakeEnemy flowerSnake)
+        {
+            flowerSnake.StopClingingOnLocalClient();
+            return;
+        }
+        if (enemy is CentipedeAI centipede)
+        {
+            if (centipede.clingingToPlayer != null)
+                centipede.StopClingingToPlayer(false);
+            return;
+        }
+    }
+
+    private void GrabEnemyOnClient(EnemyAI enemy)
+    {
+        if (!CanGrab)
+            return;
+
+        var rootPosition = enemy.transform.position;
+        var eyePosition = GetEnemyAttachmentPoint(enemy);
+        var enemyCollider = GetEnemyCollider(enemy);
+        GetAttachmentPosition(rootPosition, eyePosition, enemyCollider, out var segment, out var attachPosition, out var holderPosition, out var centerOfMass, out eatingTongueOffset);
+        eatingTongueOffset += eatDistance;
+
+        dummyObject.SetPositionAndRotation(attachPosition, Quaternion.identity);
+        dummyObjectJoint.connectedBody = segment;
+        SetCenterOfMassToWorldPosition(dummyObjectBody, centerOfMass);
+        dummyObjectBody.angularDrag = defaultAngularDrag;
+        holder.SetPositionAndRotation(holderPosition, enemy.transform.rotation);
+        centeredHolderLocalPosition = rootPosition - eyePosition;
+        EnableHolderPhysics();
+
+        grabbedEnemy = enemy;
+        var locker = enemy.gameObject.AddComponent<LockPosition>();
+        locker.target = holder;
+        grabbedEnemy.SetClientCalculatingAI(false);
+        grabbedEnemy.enabled = false;
+        SetEnemyGrabbedAnimations(grabbedEnemy);
+
+        sounds.PlayGrabItemSound();
 
         BeginPulling();
     }
@@ -442,14 +555,26 @@ public class Barnacle : NetworkBehaviour, IHittable
     {
         if (IsDead)
             return;
+        if (state != State.Pulling)
+            return;
 
         targetTongueOffset = currentTongueOffset - distance;
+    }
+
+    public void SetTargetTongueOffset(float distance)
+    {
+        if (IsDead)
+            return;
+
+        targetTongueOffset = distance;
     }
 
     private void Update()
     {
         if (centeringHolderPosition)
-            holder.localPosition = Vector3.Lerp(holder.localPosition, centeredHolderLocalPosition, 6 * Time.deltaTime);
+            holder.localPosition = Vector3.Lerp(holder.localPosition, centeredHolderLocalPosition, Time.deltaTime);
+        if (centeringDummyObjectRotation)
+            dummyObject.rotation = Quaternion.Lerp(dummyObject.rotation, Quaternion.identity, 4 * Time.deltaTime);
 
         if (state == State.Eating)
         {
@@ -576,6 +701,19 @@ public class Barnacle : NetworkBehaviour, IHittable
             animator.SetTrigger("Bite Player");
             eatingTimeLeft = playerEatTime;
         }
+        else if (grabbedEnemy != null)
+        {
+            if (grabbedEnemy is MaskedPlayerEnemy)
+            {
+                animator.SetTrigger("Bite Player");
+                eatingTimeLeft = playerEatTime;
+            }
+            else
+            {
+                animator.SetTrigger("Eat Item");
+                eatingTimeLeft = itemEatTime;
+            }
+        }
         else if (grabbedItem != null)
         {
             animator.SetTrigger("Eat Item");
@@ -583,6 +721,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         }
         else
         {
+            StunOnClient(0.25f);
             return;
         }
 
@@ -597,29 +736,17 @@ public class Barnacle : NetworkBehaviour, IHittable
         dummyObjectJoint.connectedBody = null;
         dummyObject.SetParent(mouthAttachment, true);
         dummyObject.localPosition = Vector3.zero;
-    }
-
-    public void SwallowGrabbedItem()
-    {
-        if (!IsOwner)
-            return;
-        if (IsDead)
-            return;
-        SwallowGrabbedItemClientRpc();
-    }
-
-    [ClientRpc]
-    private void SwallowGrabbedItemClientRpc()
-    {
-        grabbedItem.parentObject = itemStash;
-        grabbedItem.EnableItemMeshes(false);
-        eatenItems.Add(grabbedItem);
-        grabbedItem = null;
-        centeringHolderPosition = false;
+        if (grabbedItem == null)
+            centeringDummyObjectRotation = true;
     }
 
     public void BiteGrabbedPlayer(int damage)
     {
+        if (grabbedPlayer == null)
+        {
+            SwallowGrabbedPlayerServerRpc();
+            return;
+        }
         if (!grabbedPlayer.IsOwner)
             return;
         if (IsDead)
@@ -627,6 +754,7 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         if (grabbedPlayer.criticallyInjured || !grabbedPlayer.AllowPlayerDeath())
         {
+            grabbedPlayer.DamagePlayer(0, hasDamageSFX: true, callRPC: true, CauseOfDeath.Crushing);
             SwallowGrabbedPlayerServerRpc();
             return;
         }
@@ -646,11 +774,10 @@ public class Barnacle : NetworkBehaviour, IHittable
         animator.SetTrigger("Swallow Player");
     }
 
-    public void KillPlayer()
+    public void ChompTarget()
     {
-        if (!grabbedPlayer.IsOwner)
-            return;
-        KillPlayerServerRpc();
+        if (grabbedPlayer != null && grabbedPlayer.IsOwner)
+            KillPlayerServerRpc();
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -689,11 +816,14 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     private void AttachRagdoll()
     {
+        if (grabbedPlayer == null)
+            return;
+
         const string methodName = $"{nameof(Barnacle)}.{nameof(AttachRagdoll)}()";
 
         if (grabbedPlayer.deadBody == null)
         {
-            BlackMesaInterior.Logger.LogError($"{methodName}: Grabbed player {grabbedPlayer} has no ragdoll.");
+            BlackMesaInterior.Logger.LogWarning($"{methodName}: Grabbed player {grabbedPlayer} has no ragdoll.");
             return;
         }
 
@@ -701,12 +831,12 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         if (head == null)
         {
-            BlackMesaInterior.Logger.LogError($"{methodName}: Failed to find the head of {grabbedPlayer}'s ragdoll.");
+            grabbedPlayer.deadBody.DeactivateBody(false);
             return;
         }
         if (!head.TryGetComponent<Rigidbody>(out var headRigidbody))
         {
-            BlackMesaInterior.Logger.LogError($"{methodName}: {grabbedPlayer}'s ragdoll's head has no rigidbody.");
+            BlackMesaInterior.Logger.LogWarning($"{methodName}: {grabbedPlayer}'s ragdoll's head has no rigidbody.");
             return;
         }
 
@@ -716,34 +846,63 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         DropPlayer();
         dummyObjectJoint.connectedBody = headRigidbody;
+        dummyObjectJoint.anchor = Vector3.zero;
+        dummyObjectJoint.connectedAnchor = Vector3.zero;
         grabbedBody = grabbedPlayer.deadBody;
         grabbedPlayer = null;
     }
 
-    public void DeactivateRagdoll()
+    public void SwallowGrabbedObject()
     {
         centeringHolderPosition = false;
+        centeringDummyObjectRotation = false;
 
-        if (grabbedBody == null)
+        if (!IsOwner)
             return;
 
-        grabbedBody.DeactivateBody(setActive: false);
-        if (grabbedBody.grabBodyObject is { } bodyItem && bodyItem.playerHeldBy is { } player)
+        if (grabbedItem != null)
         {
-            if (player.currentlyHeldObjectServer == bodyItem)
-                player.DiscardHeldObject();
+            grabbedItem.parentObject = itemStash;
 
-            for (var i = 0; i < player.ItemSlots.Length; i++)
+            grabbedItem.EnableItemMeshes(false);
+
+            if (grabbedItem is RagdollGrabbableObject ragdollItem)
+                ragdollItem.ragdoll.DeactivateBody(false);
+            else
+                eatenItems.Add(grabbedItem);
+            grabbedItem = null;
+        }
+        if (grabbedEnemy != null)
+        {
+            if (IsOwner)
             {
-                if (player.ItemSlots[i] == bodyItem)
-                    player.ItemSlots[i] = null;
+                grabbedEnemy.KillEnemyServerRpc(true);
+                // Centipede ignores the destroy parameter, so deactivate it as well.
+                grabbedEnemy.gameObject.SetActive(false);
+            }
+            DropEnemy();
+            grabbedEnemy = null;
+        }
+        if (grabbedBody != null)
+        {
+            grabbedBody.DeactivateBody(setActive: false);
+            if (grabbedBody.grabBodyObject is { } bodyItem && bodyItem.playerHeldBy is { } player)
+            {
+                if (player.currentlyHeldObjectServer == bodyItem)
+                    player.DiscardHeldObject();
+
+                for (var i = 0; i < player.ItemSlots.Length; i++)
+                {
+                    if (player.ItemSlots[i] == bodyItem)
+                        player.ItemSlots[i] = null;
+                }
+
+                bodyItem.EnablePhysics(false);
             }
 
-            bodyItem.EnablePhysics(false);
+            dummyObjectJoint.connectedBody = null;
+            grabbedBody = null;
         }
-
-        dummyObjectJoint.connectedBody = null;
-        grabbedBody = null;
     }
 
     public void SpitPlayerGuts()
@@ -763,8 +922,6 @@ public class Barnacle : NetworkBehaviour, IHittable
         item.EnableItemMeshes(true);
         item.EnablePhysics(true);
         item.FallToGround(true);
-
-        ResetHolder();
     }
 
     private void DropPlayer()
@@ -776,6 +933,27 @@ public class Barnacle : NetworkBehaviour, IHittable
         var position = grabbedPlayer.transform.position;
         grabbedPlayer.transform.SetParent(grabbedPlayerPreviousParent, false);
         grabbedPlayer.transform.position = position;
+
+        ResetHolder();
+    }
+
+    private void DropRagdoll()
+    {
+        if (grabbedBody == null)
+            return;
+
+        foreach (var rigidBody in grabbedBody.bodyParts)
+            rigidBody.detectCollisions = true;
+
+        dummyObjectJoint.connectedBody = null;
+    }
+
+    private void DropEnemy()
+    {
+        if (grabbedEnemy == null)
+            return;
+
+        Destroy(grabbedEnemy.GetComponent<LockPosition>());
 
         ResetHolder();
     }
@@ -802,10 +980,16 @@ public class Barnacle : NetworkBehaviour, IHittable
     [ClientRpc]
     private void StunClientRpc(float duration)
     {
+        StunOnClient(duration);
+    }
+
+    private void StunOnClient(float duration)
+    {
         SetState(State.Flinching);
         flinchTimeLeft = duration;
 
         animator.SetInteger("Flinch", animationRandomizer.Next(2));
+        animator.ResetTrigger("Pull");
         animator.ResetTrigger("Bite Player");
         animator.ResetTrigger("Swallow Player");
         animator.ResetTrigger("Eat Item");
@@ -813,14 +997,26 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         sounds.PlayFlinchSound();
 
+        DropGrabbedObjectsOnClient();
+    }
+
+    private void DropGrabbedObjectsOnClient()
+    {
         if (grabbedItem != null)
         {
             DropItem(grabbedItem);
-            grabbedItem = null;
+            ResetHolder();
         }
+        grabbedItem = null;
 
         DropPlayer();
         grabbedPlayer = null;
+
+        DropRagdoll();
+        grabbedBody = null;
+
+        DropEnemy();
+        grabbedEnemy = null;
     }
 
     bool IHittable.Hit(int force, Vector3 hitDirection, PlayerControllerB playerWhoHit, bool playHitSFX, int hitID)
@@ -867,14 +1063,7 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         yield return new WaitForSeconds(1);
 
-        if (grabbedItem != null)
-        {
-            DropItem(grabbedItem);
-            grabbedItem = null;
-        }
-
-        DropPlayer();
-        grabbedPlayer = null;
+        DropGrabbedObjectsOnClient();
 
         sounds.PlayDeathSound();
 
@@ -894,14 +1083,7 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     public override void OnDestroy()
     {
-        if (grabbedItem != null)
-        {
-            DropItem(grabbedItem);
-            grabbedItem = null;
-        }
-
-        DropPlayer();
-        grabbedPlayer = null;
+        DropGrabbedObjectsOnClient();
 
         foreach (var eatenItem in eatenItems)
         {

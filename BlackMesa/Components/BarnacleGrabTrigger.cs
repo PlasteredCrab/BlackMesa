@@ -12,5 +12,7 @@ public class BarnacleGrabTrigger : MonoBehaviour
             barnacle.TryGrabPlayerOrHeldItem(player);
         if (other.TryGetComponent<GrabbableObject>(out var item))
             barnacle.GrabItem(item);
+        if (other.TryGetComponent<EnemyAICollisionDetect>(out var enemyCollider))
+            barnacle.GrabEnemy(enemyCollider.mainScript);
     }
 }
