@@ -198,6 +198,11 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     internal bool IsDead => state == State.Dead;
 
+    private bool CanGrabItem(GrabbableObject item)
+    {
+        return item is RagdollGrabbableObject || !item.itemProperties.twoHandedAnimation;
+    }
+
     public void TryGrabPlayerOrHeldItem(PlayerControllerB player)
     {
         if (!CanGrab)
@@ -222,7 +227,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         }
 
         var heldItem = player.currentlyHeldObjectServer;
-        if (heldItem != null && heldItem.IsOwner && !heldItem.itemProperties.twoHandedAnimation)
+        if (heldItem != null && heldItem.IsOwner && CanGrabItem(heldItem))
         {
             // Only grab the item if the player is within ~63 degrees of facing the tongue.
             var cameraTransform = player.gameplayCamera.transform;
@@ -369,7 +374,7 @@ public class Barnacle : NetworkBehaviour, IHittable
     {
         if (!CanGrab)
             return;
-        if (item.itemProperties.twoHandedAnimation)
+        if (!CanGrabItem(item))
             return;
 
         if (item.playerHeldBy is { } player)
