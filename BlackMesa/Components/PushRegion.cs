@@ -9,23 +9,24 @@ public class PushRegion : MonoBehaviour
     public PushRegion oppositePushRegion;
 
     private Vector3 lastPosition;
-    private HashSet<PlayerControllerB> playersToPush = [];
+    private List<PlayerControllerB> playersToPush = [];
 
     private void Start()
     {
         lastPosition = transform.position;
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void FixedUpdate()
+    {
+        // Scuffed workaround for the fact that killed players teleport to the hidden
+        // players location without triggering OnTriggerExit().
+        playersToPush.Clear();
+    }
+
+    private void OnTriggerStay(Collider other)
     {
         if (other.CompareTag("Player") && other.TryGetComponent(out PlayerControllerB player))
             playersToPush.Add(player);
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Player") && other.TryGetComponent(out PlayerControllerB player))
-            playersToPush.Remove(player);
     }
 
     private void LateUpdate()
@@ -36,13 +37,19 @@ public class PushRegion : MonoBehaviour
         if (delta == Vector3.zero)
             return;
 
-        foreach (var playerToPush in playersToPush)
+        var playerIndex = 0;
+        while (playerIndex < playersToPush.Count)
         {
-            playerToPush.transform.position += delta;
-            if (oppositePushRegion != null && oppositePushRegion.playersToPush.Contains(playerToPush))
+            var player = playersToPush[playerIndex];
+            player.transform.position += delta;
+            if (oppositePushRegion != null && oppositePushRegion.playersToPush.Contains(player))
             {
-                Debug.Log($"{playerToPush} is being pushed by two opposite push regions, killing.");
-                playerToPush.KillPlayer(Vector3.zero, true, CauseOfDeath.Crushing);
+                player.KillPlayer(Vector3.zero, true, CauseOfDeath.Crushing);
+                playersToPush.RemoveAt(playerIndex);
+            }
+            else
+            {
+                playerIndex++;
             }
         }
 
