@@ -955,6 +955,8 @@ public class Barnacle : NetworkBehaviour, IHittable
             return;
 
         Destroy(grabbedEnemy.GetComponent<LockPosition>());
+        grabbedEnemy.SetClientCalculatingAI(true);
+        grabbedEnemy.enabled = true;
 
         ResetHolder();
     }
