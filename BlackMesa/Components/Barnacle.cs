@@ -592,8 +592,6 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         if (state == State.Flinching)
         {
-            animator.SetInteger("Flinch", -1);
-
             flinchTimeLeft -= Time.deltaTime;
 
             if (flinchTimeLeft <= 0)
@@ -997,6 +995,8 @@ public class Barnacle : NetworkBehaviour, IHittable
         animator.ResetTrigger("Swallow Player");
         animator.ResetTrigger("Eat Item");
         animator.ResetTrigger("Finish Eating");
+        animator.Update(0);
+        animator.SetInteger("Flinch", -1);
 
         sounds.PlayFlinchSound();
 
