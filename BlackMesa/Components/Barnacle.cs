@@ -448,6 +448,8 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     public void GrabEnemy(EnemyAI enemy)
     {
+        if (!enemy.IsOwner)
+            return;
         if (!(enemy is MaskedPlayerEnemy || enemy is FlowerSnakeEnemy || enemy is CentipedeAI))
             return;
 
