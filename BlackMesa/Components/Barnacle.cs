@@ -858,9 +858,6 @@ public class Barnacle : NetworkBehaviour, IHittable
         centeringHolderPosition = false;
         centeringDummyObjectRotation = false;
 
-        if (!IsOwner)
-            return;
-
         if (grabbedItem != null)
         {
             grabbedItem.parentObject = itemStash;
