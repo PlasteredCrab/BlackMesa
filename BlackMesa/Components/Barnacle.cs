@@ -547,10 +547,11 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     private IEnumerator BeginPullingCoroutine()
     {
+        SetState(State.Pulling);
         yield return new WaitForSeconds(0.2f);
 
-        animator.SetTrigger("Pull");
-        SetState(State.Pulling);
+        if (state == State.Pulling)
+            animator.SetTrigger("Pull");
     }
 
     public void YankTongue(float distance)
