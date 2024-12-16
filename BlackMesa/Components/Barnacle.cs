@@ -248,12 +248,12 @@ public class Barnacle : NetworkBehaviour, IHittable
             var dot = Vector3.Dot(cameraTransform.forward, closestSegmentDirection);
             if (dot >= 0.45f)
             {
-                GrabItemServerRpc(heldItem);
+                GrabItem(heldItem);
                 return;
             }
         }
 
-        GrabPlayerServerRpc(player);
+        GrabPlayer(player);
     }
 
     private int GetNearestSegmentToPosition(Vector3 position)
@@ -352,6 +352,7 @@ public class Barnacle : NetworkBehaviour, IHittable
     {
         if (!item.IsOwner)
             return;
+        GrabItemOnClient(item);
         GrabItemServerRpc(item);
     }
 
@@ -407,6 +408,12 @@ public class Barnacle : NetworkBehaviour, IHittable
         BeginPulling();
     }
 
+    private void GrabPlayer(PlayerControllerB player)
+    {
+        GrabPlayerOnClient(player);
+        GrabPlayerServerRpc(player);
+    }
+
     [ServerRpc(RequireOwnership = false)]
     private void GrabPlayerServerRpc(NetworkBehaviourReference playerReference)
     {
@@ -460,6 +467,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (!(enemy is MaskedPlayerEnemy || enemy is FlowerSnakeEnemy || enemy is CentipedeAI))
             return;
 
+        GrabEnemyOnClient(enemy);
         GrabEnemyServerRpc(enemy);
     }
 
