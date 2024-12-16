@@ -882,11 +882,9 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (grabbedEnemy != null)
         {
             if (grabbedEnemy.IsOwner)
-            {
                 grabbedEnemy.KillEnemyOnOwnerClient(true);
-                // Centipede ignores the destroy parameter, so deactivate it as well.
-            }
             DropEnemy();
+            // Centipede ignores the destroy parameter, so deactivate it as well.
             grabbedEnemy.gameObject.SetActive(false);
             grabbedEnemy = null;
         }
