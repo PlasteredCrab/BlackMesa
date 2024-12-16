@@ -81,6 +81,7 @@ public class Barnacle : NetworkBehaviour, IHittable
     private Transform dummyObjectParent;
     private Rigidbody dummyObjectBody;
     private Joint dummyObjectJoint;
+    private Joint holderJoint;
     private float defaultAngularDrag;
 
     private GrabbableObject grabbedItem;
@@ -120,6 +121,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         dummyObjectParent = dummyObject.parent;
         dummyObjectBody = dummyObject.GetComponent<Rigidbody>();
         dummyObjectJoint = dummyObjectBody.GetComponent<Joint>();
+        holderJoint = holder.GetComponent<Joint>();
         defaultAngularDrag = dummyObjectBody.angularDrag;
 
         tongueParentTransform.gameObject.SetActive(false);
@@ -693,16 +695,16 @@ public class Barnacle : NetworkBehaviour, IHittable
     {
         if (!IsOwner)
             return;
-        BeginEatingGrabbedItemClientRpc();
+        BeginEatingGrabbedObjectClientRpc();
     }
 
     [ClientRpc]
-    private void BeginEatingGrabbedItemClientRpc()
+    private void BeginEatingGrabbedObjectClientRpc()
     {
         if (state != State.Pulling)
             return;
 
-        if (grabbedPlayer != null)
+        if (grabbedPlayer != null || grabbedBody != null)
         {
             animator.SetTrigger("Bite Player");
             eatingTimeLeft = playerEatTime;
@@ -850,10 +852,12 @@ public class Barnacle : NetworkBehaviour, IHittable
         foreach (var rigidBody in grabbedPlayer.deadBody.bodyParts)
             rigidBody.detectCollisions = false;
 
-        DropPlayer();
-        dummyObjectJoint.connectedBody = headRigidbody;
-        dummyObjectJoint.anchor = Vector3.zero;
-        dummyObjectJoint.connectedAnchor = Vector3.zero;
+        PatchPlayerControllerB.SetPlayerPositionLocked(grabbedPlayer, false);
+        grabbedPlayerPreviousParent = null;
+
+        holder.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        centeredHolderLocalPosition = Vector3.zero;
+        holderJoint.connectedBody = headRigidbody;
         grabbedBody = grabbedPlayer.deadBody;
         grabbedPlayer = null;
     }
@@ -948,7 +952,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         foreach (var rigidBody in grabbedBody.bodyParts)
             rigidBody.detectCollisions = true;
 
-        dummyObjectJoint.connectedBody = null;
+        holderJoint.connectedBody = null;
     }
 
     private void DropEnemy()
