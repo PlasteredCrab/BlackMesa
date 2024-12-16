@@ -527,6 +527,8 @@ public class Barnacle : NetworkBehaviour, IHittable
     {
         if (!CanGrab)
             return;
+        if (!enemy.gameObject.activeInHierarchy)
+            return;
 
         var rootPosition = enemy.transform.position;
         var eyePosition = GetEnemyAttachmentPoint(enemy);
