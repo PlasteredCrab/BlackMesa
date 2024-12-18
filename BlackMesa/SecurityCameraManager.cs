@@ -180,6 +180,8 @@ namespace BlackMesa
 
                 foreach (var handheld in handheldTVCameras)
                 {
+                    if (handheld == null || handheld.Camera == null)
+                        continue;
                     if (handheld != heldItem)
                         continue;
                     handheld.Camera.enabled = true;
