@@ -71,6 +71,18 @@ namespace BlackMesa
                 Logger.LogInfo("Interior assets loaded successfully.");
             }
 
+            var serializationCheck = LoadAsset<FixPluginTypesSerializationCheck>("Assets/LethalCompany/Mods/BlackMesaInterior/FixPluginTypesSerializationCheck.asset");
+            if (serializationCheck == null)
+            {
+                Logger.LogError($"FixPluginTypesSerialization checker was not loaded.");
+                return;
+            }
+            if (!serializationCheck.buh)
+            {
+                Logger.LogError($"FixPluginTypesSerialization is not working, please copy its config from someone that has no errors during FixPluginTypesSerialization startup before the chainloader.");
+                return;
+            }
+
             // Load and register the mod to LethalLevelLoader.
             ExtendedMod blackMesaExtendedMod = LoadAsset<ExtendedMod>("Assets/LethalCompany/Mods/BlackMesaInterior/BlackMesaInteriorMod.asset");
             if (blackMesaExtendedMod == null)
