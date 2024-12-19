@@ -25,4 +25,9 @@ public static class Extensions
         materials[index] = material;
         renderer.sharedMaterials = materials;
     }
+
+    public static int IntHash(this Vector3 position)
+    {
+        return ((int)position.x) ^ ((int)position.y) ^ ((int)position.z);
+    }
 }
