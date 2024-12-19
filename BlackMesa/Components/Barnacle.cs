@@ -52,8 +52,6 @@ public class Barnacle : NetworkBehaviour, IHittable
     [Header("Eating/Dropping")]
     public Transform itemStash;
     public Transform mouthAttachment;
-    public float playerEatTime;
-    public float itemEatTime;
     public VisualEffect pukeEffect;
 
     public AnimationCurve idleSoundTimeCurve;
@@ -67,7 +65,6 @@ public class Barnacle : NetworkBehaviour, IHittable
     private Vector3 retractedTongueLocalPosition;
 
     private State state = State.Idle;
-    private float eatingTimeLeft = 0;
     private float flinchTimeLeft = 0;
 
     private CapsuleCollider[] tongueSegmentColliders;
@@ -129,7 +126,7 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     private void Start()
     {
-        animator.SetTrigger("Extend");
+        animator.CrossFadeInFixedTime("Extending", 0.25f);
         DropTongue();
 
         barnacles.Add(this);
@@ -173,6 +170,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (newState == state)
             return;
 
+        Debug.Log($"SetState {state} -> {newState}");
         state = newState;
     }
 
@@ -192,6 +190,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         pukeTravelTime = Mathf.Sqrt(2 * Vector3.Distance(pukeEffect.transform.position, hit.point) / gravity);
 
         SetState(State.Extending);
+        animator.CrossFadeInFixedTime("Extending", 0.5f);
     }
 
     internal bool HasGrabbedObject => !(grabbedItem is null && grabbedPlayer is null && grabbedBody is null && grabbedEnemy is null);
@@ -568,7 +567,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         yield return new WaitForSeconds(0.2f);
 
         if (state == State.Pulling)
-            animator.SetTrigger("Pull");
+            animator.CrossFadeInFixedTime("Pulling", 0.25f);
     }
 
     public void YankTongue(float distance)
@@ -596,26 +595,12 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (centeringDummyObjectRotation)
             dummyObject.rotation = Quaternion.Lerp(dummyObject.rotation, Quaternion.identity, 4 * Time.deltaTime);
 
-        if (state == State.Eating)
-        {
-            eatingTimeLeft -= Time.deltaTime;
-
-            if (eatingTimeLeft <= 0)
-            {
-                animator.SetTrigger("Finish Eating");
-                DropTongue();
-            }
-        }
-
         if (state == State.Flinching)
         {
             flinchTimeLeft -= Time.deltaTime;
 
             if (flinchTimeLeft <= 0)
-            {
-                animator.SetTrigger("Extend");
                 DropTongue();
-            }
         }
 
         if (!IsOwner)
@@ -697,7 +682,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (state != State.Extending)
             return;
 
-        animator.SetTrigger("Idle");
+        animator.CrossFadeInFixedTime("Idle", 0.25f);
         SetState(State.Idle);
     }
 
@@ -716,26 +701,18 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         if (grabbedPlayer != null || grabbedBody != null)
         {
-            animator.SetTrigger("Bite Player");
-            eatingTimeLeft = playerEatTime;
+            StartHumanoidEatingAnimation();
         }
         else if (grabbedEnemy != null)
         {
             if (grabbedEnemy is MaskedPlayerEnemy)
-            {
-                animator.SetTrigger("Bite Player");
-                eatingTimeLeft = playerEatTime;
-            }
+                StartHumanoidEatingAnimation();
             else
-            {
-                animator.SetTrigger("Eat Item");
-                eatingTimeLeft = itemEatTime;
-            }
+                StartFastEatingAnimation();
         }
         else if (grabbedItem != null)
         {
-            animator.SetTrigger("Eat Item");
-            eatingTimeLeft = itemEatTime;
+            StartFastEatingAnimation();
         }
         else
         {
@@ -748,6 +725,16 @@ public class Barnacle : NetworkBehaviour, IHittable
         SetState(State.Eating);
     }
 
+    private void StartFastEatingAnimation()
+    {
+        animator.CrossFadeInFixedTime("Eat Item", 0.25f);
+    }
+
+    private void StartHumanoidEatingAnimation()
+    {
+        animator.CrossFadeInFixedTime("Begin Attacking Humanoid", 0.25f);
+    }
+
     public void AttachHolderToMouth()
     {
         DisableHolderPhysics();
@@ -758,11 +745,11 @@ public class Barnacle : NetworkBehaviour, IHittable
             centeringDummyObjectRotation = true;
     }
 
-    public void BiteGrabbedPlayer(int damage)
+    public void BiteGrabbedHumanoid(int damage)
     {
         if (grabbedPlayer == null)
         {
-            SwallowGrabbedPlayerServerRpc();
+            SwallowGrabbedHumanoid();
             return;
         }
         if (!grabbedPlayer.IsOwner)
@@ -773,26 +760,37 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (grabbedPlayer.criticallyInjured || !grabbedPlayer.AllowPlayerDeath())
         {
             grabbedPlayer.DamagePlayer(0, hasDamageSFX: true, callRPC: true, CauseOfDeath.Crushing);
-            SwallowGrabbedPlayerServerRpc();
+            SwallowGrabbedHumanoid();
             return;
         }
 
         grabbedPlayer.DamagePlayer(damage, hasDamageSFX: true, callRPC: true, CauseOfDeath.Crushing);
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    private void SwallowGrabbedPlayerServerRpc()
+    private void SwallowGrabbedHumanoid()
     {
-        SwallowGrabbedPlayerClientRpc();
+        SwallowGrabbedHumanoidOnClient();
+        SwallowGrabbedHumanoidServerRpc();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void SwallowGrabbedHumanoidServerRpc()
+    {
+        SwallowGrabbedHumanoidClientRpc();
     }
 
     [ClientRpc]
-    private void SwallowGrabbedPlayerClientRpc()
+    private void SwallowGrabbedHumanoidClientRpc()
     {
-        animator.SetTrigger("Swallow Player");
+        SwallowGrabbedHumanoidOnClient();
     }
 
-    public void ChompTarget()
+    private void SwallowGrabbedHumanoidOnClient()
+    {
+        animator.SetTrigger("Swallow Humanoid");
+    }
+
+    public void CrushTarget()
     {
         if (grabbedPlayer != null && grabbedPlayer.IsOwner)
             KillPlayerServerRpc();
@@ -920,7 +918,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         }
     }
 
-    public void SpitPlayerGuts()
+    public void SpitChewedGuts()
     {
         sounds.PlayPukeSound();
         PlayPukeEffect();
@@ -1005,14 +1003,9 @@ public class Barnacle : NetworkBehaviour, IHittable
         SetState(State.Flinching);
         flinchTimeLeft = duration;
 
-        animator.SetInteger("Flinch", animationRandomizer.Next(2));
-        animator.ResetTrigger("Pull");
-        animator.ResetTrigger("Bite Player");
-        animator.ResetTrigger("Swallow Player");
-        animator.ResetTrigger("Eat Item");
+        animator.ResetTrigger("Swallow Humanoid");
         animator.ResetTrigger("Finish Eating");
-        animator.Update(0);
-        animator.SetInteger("Flinch", -1);
+        animator.CrossFadeInFixedTime($"Flinch {animationRandomizer.Next(2)}", 0.1f);
 
         sounds.PlayFlinchSound();
 
@@ -1078,7 +1071,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         sounds.PlayFlinchSound();
 
         SetState(State.Dead);
-        animator.SetInteger("Death", animationRandomizer.Next(2));
+        animator.CrossFadeInFixedTime($"Death {animationRandomizer.Next(2)}", 0.25f);
 
         yield return new WaitForSeconds(1);
 
