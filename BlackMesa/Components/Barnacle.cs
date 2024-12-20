@@ -170,7 +170,6 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (newState == state)
             return;
 
-        Debug.Log($"SetState {state} -> {newState}");
         state = newState;
     }
 
