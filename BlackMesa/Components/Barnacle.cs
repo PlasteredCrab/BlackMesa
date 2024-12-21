@@ -198,16 +198,34 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     internal bool IsDead => state == State.Dead;
 
+    private bool CanGrabPlayer(PlayerControllerB player)
+    {
+        if (!player.IsOwner)
+            return false;
+        return true;
+    }
+
     private bool CanGrabItem(GrabbableObject item)
     {
-        return item is RagdollGrabbableObject || !item.itemProperties.twoHandedAnimation;
+        if (item.itemProperties.twoHandedAnimation && item is not RagdollGrabbableObject)
+            return false;
+        return true;
+    }
+
+    private bool CanGrabEnemy(EnemyAI enemy)
+    {
+        if (!enemy.IsOwner)
+            return false;
+        if (!(enemy is MaskedPlayerEnemy || enemy is FlowerSnakeEnemy || enemy is CentipedeAI))
+            return false;
+        return true;
     }
 
     public void TryGrabPlayerOrHeldItem(PlayerControllerB player)
     {
         if (!CanGrab)
             return;
-        if (!player.IsOwner)
+        if (!CanGrabPlayer(player))
             return;
 
         foreach (var enemy in PatchEnemyAI.AllEnemies)
@@ -433,6 +451,8 @@ public class Barnacle : NetworkBehaviour, IHittable
     {
         if (!CanGrab)
             return;
+        if (!CanGrabPlayer(player))
+            return;
 
         grabbedPlayerPreviousParent = player.transform.parent;
 
@@ -460,9 +480,7 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     public void GrabEnemy(EnemyAI enemy)
     {
-        if (!enemy.IsOwner)
-            return;
-        if (!(enemy is MaskedPlayerEnemy || enemy is FlowerSnakeEnemy || enemy is CentipedeAI))
+        if (!CanGrabEnemy(enemy))
             return;
 
         GrabEnemyOnClient(enemy);
