@@ -202,6 +202,8 @@ public class Barnacle : NetworkBehaviour, IHittable
     {
         if (!player.IsOwner)
             return false;
+        if (player.isPlayerDead)
+            return false;
         return true;
     }
 
@@ -774,7 +776,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         if (IsDead)
             return;
 
-        if (grabbedPlayer.criticallyInjured || !grabbedPlayer.AllowPlayerDeath())
+        if (grabbedPlayer.criticallyInjured || grabbedPlayer.isPlayerDead || !grabbedPlayer.AllowPlayerDeath())
         {
             grabbedPlayer.DamagePlayer(0, hasDamageSFX: true, callRPC: true, CauseOfDeath.Crushing);
             SwallowGrabbedHumanoid();
