@@ -1050,7 +1050,7 @@ public class Barnacle : NetworkBehaviour, IHittable
         grabbedEnemy = null;
     }
 
-    bool IHittable.Hit(int force, Vector3 hitDirection, PlayerControllerB playerWhoHit, bool playHitSFX, int hitID)
+    public bool Hit(int force, Vector3 hitDirection, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
     {
         if (IsDead)
             return false;
