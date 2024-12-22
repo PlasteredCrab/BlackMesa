@@ -144,6 +144,29 @@ public class Barnacle : NetworkBehaviour, IDumbEnemy
         pukeEffect.SetFloat("Gravity", gravity);
     }
 
+    public void Stun(float duration)
+    {
+        StunServerRpc(duration);
+    }
+
+    public bool Hit(int force, Vector3 hitDirection, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
+    {
+        if (IsDead)
+            return false;
+        if (force <= 0)
+            return false;
+        StartDyingServerRpc();
+        return true;
+    }
+
+    public void Kill(bool destroy)
+    {
+        if (destroy && IsOwner)
+            NetworkObject.Despawn();
+
+        StartDyingServerRpc();
+    }
+
     private void SetIdleSoundTimer()
     {
         if (!IsOwner)
@@ -1001,11 +1024,6 @@ public class Barnacle : NetworkBehaviour, IDumbEnemy
         dummyObject.rotation = Quaternion.identity;
     }
 
-    public void Stun(float duration)
-    {
-        StunServerRpc(duration);
-    }
-
     [ServerRpc(RequireOwnership = false)]
     private void StunServerRpc(float duration)
     {
@@ -1054,16 +1072,6 @@ public class Barnacle : NetworkBehaviour, IDumbEnemy
 
         DropEnemy();
         grabbedEnemy = null;
-    }
-
-    public bool Hit(int force, Vector3 hitDirection, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
-    {
-        if (IsDead)
-            return false;
-        if (force <= 0)
-            return false;
-        StartDyingServerRpc();
-        return true;
     }
 
     [ServerRpc(RequireOwnership = false)]

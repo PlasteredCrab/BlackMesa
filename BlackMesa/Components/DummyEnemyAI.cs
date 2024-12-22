@@ -30,6 +30,31 @@ public sealed class DummyEnemyAI : EnemyAI
         enemy.Stun(setToStunTime);
     }
 
+    public override void OnCollideWithPlayer(Collider other)
+    {
+    }
+
+    public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null)
+    {
+    }
+
+    public override void Update()
+    {
+    }
+
+    public override void KillEnemy(bool destroy = false)
+    {
+        enemy.Kill(destroy);
+    }
+
+    public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet = false)
+    {
+    }
+
+    public override void DoAIInterval()
+    {
+    }
+
     public override void OnDestroy()
     {
     }
