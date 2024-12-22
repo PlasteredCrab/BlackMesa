@@ -1,3 +1,4 @@
+using BlackMesa.Interfaces;
 using BlackMesa.Patches;
 using GameNetcodeStuff;
 using System;
@@ -9,7 +10,7 @@ using UnityEngine.VFX;
 
 namespace BlackMesa.Components;
 
-public class Barnacle : NetworkBehaviour, IHittable
+public class Barnacle : NetworkBehaviour, IDumbEnemy
 {
     enum State
     {

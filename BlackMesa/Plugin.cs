@@ -127,7 +127,6 @@ namespace BlackMesa
             harmony.PatchAll(typeof(PatchMenuManager));
             harmony.PatchAll(typeof(PatchAnimator));
             harmony.PatchAll(typeof(PatchEnemyAI));
-            harmony.PatchAll(typeof(PatchStunGrenadeItem));
 
             const string prefabs = "Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Prefabs";
 
