@@ -1017,6 +1017,11 @@ public class Barnacle : NetworkBehaviour, IHittable
         StunOnClient(duration);
     }
 
+    private void PlayFlinchAnimation()
+    {
+        animator.CrossFadeInFixedTime($"Flinch {animationRandomizer.Next(2) + 1}", 0.125f);
+    }
+
     private void StunOnClient(float duration)
     {
         SetState(State.Flinching);
@@ -1024,7 +1029,7 @@ public class Barnacle : NetworkBehaviour, IHittable
 
         animator.ResetTrigger("Swallow Humanoid");
         animator.ResetTrigger("Finish Eating");
-        animator.CrossFadeInFixedTime($"Flinch {animationRandomizer.Next(2) + 1}", 0.1f);
+        PlayFlinchAnimation();
 
         sounds.PlayFlinchSound();
 
@@ -1087,9 +1092,13 @@ public class Barnacle : NetworkBehaviour, IHittable
 
     private IEnumerator Die()
     {
-        sounds.PlayFlinchSound();
-
         SetState(State.Dead);
+
+        sounds.PlayFlinchSound();
+        PlayFlinchAnimation();
+
+        yield return new WaitForSeconds(0.5f);
+
         animator.CrossFadeInFixedTime($"Death {animationRandomizer.Next(2) + 1}", 0.25f);
 
         yield return new WaitForSeconds(1);
