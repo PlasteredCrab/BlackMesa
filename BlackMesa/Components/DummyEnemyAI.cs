@@ -1,6 +1,7 @@
 ﻿using BlackMesa.Interfaces;
 using GameNetcodeStuff;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace BlackMesa.Components;
 
@@ -11,6 +12,13 @@ public sealed class DummyEnemyAI : EnemyAI
     private void Awake()
     {
         enemy = GetComponent<IDumbEnemy>();
+        thisNetworkObject = NetworkObject;
+        agent = GetComponent<NavMeshAgent>();
+        skinnedMeshRenderers = [];
+        meshRenderers = [];
+        overlapColliders = new Collider[1];
+        allAINodes = [];
+        path1 = new();
         enabled = false;
     }
 
