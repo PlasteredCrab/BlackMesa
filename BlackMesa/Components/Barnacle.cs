@@ -1016,6 +1016,26 @@ public class Barnacle : NetworkBehaviour, IDumbEnemy
         ResetHolder();
     }
 
+    public static void OnPlayerTeleported(PlayerControllerB player)
+    {
+        foreach (var barnacle in barnacles)
+        {
+            if (player.isPlayerDead)
+            {
+                if (player.deadBody != null && barnacle.grabbedBody == player.deadBody)
+                {
+                    barnacle.DropRagdoll();
+                    barnacle.grabbedBody = null;
+                }
+            }
+            else if (player == barnacle.grabbedPlayer)
+            {
+                barnacle.DropPlayer();
+                barnacle.grabbedPlayer = null;
+            }
+        }
+    }
+
     private void ResetHolder()
     {
         DisableHolderPhysics();

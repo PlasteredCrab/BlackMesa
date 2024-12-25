@@ -40,4 +40,11 @@ internal class PatchPlayerControllerB
     {
         Barnacle.OnRagdollSpawnedForPlayer(__instance);
     }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(nameof(PlayerControllerB.TeleportPlayer))]
+    private static void TeleportPlayerPostfix(PlayerControllerB __instance)
+    {
+        Barnacle.OnPlayerTeleported(__instance);
+    }
 }

@@ -124,6 +124,7 @@ namespace BlackMesa
             harmony.PatchAll(typeof(PatchDungeonGenerator));
             harmony.PatchAll(typeof(PatchLungProp));
             harmony.PatchAll(typeof(PatchPlayerControllerB));
+            harmony.PatchAll(typeof(PatchDeadBodyInfo));
             harmony.PatchAll(typeof(PatchMenuManager));
             harmony.PatchAll(typeof(PatchAnimator));
             harmony.PatchAll(typeof(PatchEnemyAI));
