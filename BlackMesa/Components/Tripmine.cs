@@ -80,8 +80,8 @@ namespace BlackMesa.Components
                 return;
 
             NetworkBehaviour collidedBehaviour = null;
-            if (other.CompareTag("Player"))
-                collidedBehaviour = other.GetComponent<PlayerControllerB>();
+            if (other.CompareTag("Player") && other.TryGetComponent<PlayerControllerB>(out var player) && !player.isPlayerDead)
+                collidedBehaviour = player;
             if (other.CompareTag("PlayerBody"))
                 collidedBehaviour = other.GetComponentInParent<PlayerControllerB>();
             else if (other.tag.StartsWith("PlayerRagdoll"))
