@@ -85,7 +85,7 @@ namespace BlackMesa.Components
             if (other.CompareTag("PlayerBody"))
                 collidedBehaviour = other.GetComponentInParent<PlayerControllerB>();
             else if (other.tag.StartsWith("PlayerRagdoll"))
-                collidedBehaviour = other.GetComponent<DeadBodyInfo>()?.playerScript;
+                collidedBehaviour = other.GetComponent<DeadBodyInfo>()?.grabBodyObject;
             else if (other.CompareTag("PhysicsProp"))
                 collidedBehaviour = other.GetComponent<GrabbableObject>();
 
