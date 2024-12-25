@@ -452,6 +452,8 @@ public class Barnacle : NetworkBehaviour, IDumbEnemy
 
     private void GrabPlayer(PlayerControllerB player)
     {
+        if (!CanGrabPlayer(player))
+            return;
         GrabPlayerOnClient(player);
         GrabPlayerServerRpc(player);
     }
@@ -476,8 +478,6 @@ public class Barnacle : NetworkBehaviour, IDumbEnemy
     public void GrabPlayerOnClient(PlayerControllerB player)
     {
         if (!CanGrab)
-            return;
-        if (!CanGrabPlayer(player))
             return;
 
         grabbedPlayerPreviousParent = player.transform.parent;
