@@ -72,6 +72,22 @@ namespace BlackMesa.Components
             terminalObject.transform.position = hit.point;
         }
 
+        private bool TryGetPlayerForCollider(Collider collider, out PlayerControllerB player)
+        {
+            player = null;
+
+            if (collider.CompareTag("Player") && collider.TryGetComponent(out player))
+                return true;
+
+            if (collider.CompareTag("PlayerBody"))
+            {
+                player = collider.GetComponentInParent<PlayerControllerB>();
+                return player != null;
+            }
+
+            return false;
+        }
+
         private void OnTriggerStay(Collider other)
         {
             if (!activated)
@@ -80,10 +96,8 @@ namespace BlackMesa.Components
                 return;
 
             NetworkBehaviour collidedBehaviour = null;
-            if (other.CompareTag("Player") && other.TryGetComponent<PlayerControllerB>(out var player) && !player.isPlayerDead)
+            if (TryGetPlayerForCollider(other, out var player) && !player.isPlayerDead)
                 collidedBehaviour = player;
-            if (other.CompareTag("PlayerBody"))
-                collidedBehaviour = other.GetComponentInParent<PlayerControllerB>();
             else if (other.tag.StartsWith("PlayerRagdoll"))
                 collidedBehaviour = other.GetComponent<DeadBodyInfo>()?.grabBodyObject;
             else if (other.CompareTag("PhysicsProp"))
