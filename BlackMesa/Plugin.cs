@@ -262,11 +262,6 @@ namespace BlackMesa
                     }
                     if (mixerGroup == null)
                         continue;
-                    if (mixerGroup == audioSource.outputAudioMixerGroup)
-                    {
-                        Logger.LogWarning($"Replacement audio mixer group is the same as the original for {audioSource}.");
-                        continue;
-                    }
                     audioSource.outputAudioMixerGroup = mixerGroup;
                 }
             }
