@@ -77,9 +77,9 @@ namespace BlackMesa
                 Logger.LogError($"FixPluginTypesSerialization checker was not loaded.");
                 return;
             }
-            if (!serializationCheck.buh)
+            if (!serializationCheck.IsWorking)
             {
-                Logger.LogError($"FixPluginTypesSerialization is not working, please copy its config from someone that has no errors during FixPluginTypesSerialization startup before the chainloader.");
+                Logger.LogError($"FixPluginTypesSerialization is not working, please copy its config from someone that has no errors during FixPluginTypesSerialization startup.");
                 return;
             }
 
