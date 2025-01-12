@@ -79,7 +79,7 @@ namespace BlackMesa.Components
             if (collider.CompareTag("Player") && collider.TryGetComponent(out player))
                 return true;
 
-            if (collider.CompareTag("PlayerBody"))
+            if (collider.tag.StartsWith("PlayerBody"))
             {
                 player = collider.GetComponentInParent<PlayerControllerB>();
                 return player != null;
