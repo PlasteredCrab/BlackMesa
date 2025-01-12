@@ -26,7 +26,7 @@ namespace BlackMesa
     {
         public const string GUID = "Plastered_Crab.BlackMesaInterior";
         public const string NAME = "Black Mesa Interior";
-        public const string VERSION = "3.1.3";
+        public const string VERSION = "3.1.4";
 
         public static BlackMesaInterior Instance;
 
