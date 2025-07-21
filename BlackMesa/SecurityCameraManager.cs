@@ -162,11 +162,18 @@ namespace BlackMesa
                 camera.enabled = false;
             }
 
-            for (var i = 0; i < camerasToRenderPerFrame; i++)
+            var stopIndex = (nextCameraToRender + allControlledCameras.Count - 1) % allControlledCameras.Count;
+            var camerasRendered = 0;
+            while (camerasRendered < camerasToRenderPerFrame)
             {
                 if (ShouldRenderCamera(nextCameraToRender))
+                {
                     allControlledCameras[nextCameraToRender].enabled = true;
+                    camerasRendered++;
+                }
                 nextCameraToRender = (nextCameraToRender + 1) % allControlledCameras.Count;
+                if (nextCameraToRender == stopIndex)
+                    break;
             }
 
             // Enable the camera the local player is holding so that they don't experience a low
