@@ -1,4 +1,3 @@
-using BlackMesa.Components;
 using GameNetcodeStuff;
 using UnityEngine;
 
@@ -6,9 +5,63 @@ namespace BlackMesa.Utilities;
 
 internal static class BetterExplosion
 {
-    private delegate void Hit(float distance);
+    private struct PlayerHit
+    {
+        int damage;
 
-    public static void SpawnExplosion(Vector3 explosionPosition, float killRange, float damageRange, int nonLethalDamage)
+        internal void RegisterHit(int damage)
+        {
+            if (damage > this.damage || damage == -1)
+            {
+                BlackMesaInterior.Logger.LogInfo($"Register player damage {damage}");
+                this.damage = damage;
+            }
+        }
+
+        internal readonly void DoHit(Vector3 explosionPosition, PlayerControllerB player)
+        {
+            if (damage == 0)
+                return;
+            if (player == null)
+                return;
+            Vector3 bodyVelocity = Vector3.Normalize(player.gameplayCamera.transform.position - explosionPosition) * 80f / Vector3.Distance(player.gameplayCamera.transform.position, explosionPosition);
+            BlackMesaInterior.Logger.LogInfo($"Hit {player} for {damage}");
+            if (damage == -1)
+                player.KillPlayer(bodyVelocity, spawnBody: true, CauseOfDeath.Blast);
+            else
+                player.DamagePlayer(damage, hasDamageSFX: true, callRPC: true, CauseOfDeath.Blast, 0, fallDamage: false, bodyVelocity);
+        }
+    }
+
+    private struct EnemyHit
+    {
+        int damage;
+        float distance;
+
+        internal void RegisterHit(int damage, float distance)
+        {
+            if (damage > this.damage)
+                this.damage = damage;
+            if (distance < this.distance)
+                this.distance = distance;
+        }
+
+        internal readonly void DoHit(Vector3 explosionPosition, EnemyAI enemy)
+        {
+            if (damage == 0)
+                return;
+            if (enemy == null)
+                return;
+            BlackMesaInterior.Logger.LogInfo($"Hit {enemy} for {damage}");
+            enemy.HitEnemyOnLocalClient(damage);
+            enemy.HitFromExplosion(distance);
+        }
+    }
+
+    private static readonly SequentialElementMap<PlayerControllerB, PlayerHit> playerHits = new(() => new PlayerHit(), player => (int)player.playerClientId, 4);
+    private static readonly SequentialElementMap<EnemyAI, EnemyHit> enemyHits = new(() => new EnemyHit(), enemy => enemy.thisEnemyIndex, 4);
+
+    public static void SpawnExplosion(Vector3 explosionPosition, float killRange, float damageRange, int nonLethalDamage, Vector3 forward = default, float angleLimit = 0, float ignoreAngleRange = 2)
     {
         const int playersLayer = 3;
         const int roomLayer = 8;
@@ -17,77 +70,76 @@ internal static class BetterExplosion
         const int mapHazardsLayer = 21;
         const int dealDamageToLayers = (1 << playersLayer) | (1 << enemiesLayer) | (1 << mapHazardsLayer);
 
+        int enemyDamage = (nonLethalDamage + 10) / 20;
+
         GameObject explosionPrefab = Object.Instantiate(StartOfRound.Instance.explosionPrefab, explosionPosition, Quaternion.Euler(-90f, 0f, 0f));
-        explosionPrefab.AddComponent<DelayedDestruction>();
         explosionPrefab.SetActive(value: true);
 
-        float cameraDistance = Vector3.Distance(GameNetworkManager.Instance.localPlayerController.gameplayCamera.transform.position, explosionPosition);
+        var cameraDistance = Vector3.Distance(GameNetworkManager.Instance.localPlayerController.gameplayCamera.transform.position, explosionPosition);
         HUDManager.Instance.ShakeCamera(cameraDistance < 14 ? ScreenShakeType.Big : ScreenShakeType.Small);
 
-        Collider[] objectsToHit = Physics.OverlapSphere(explosionPosition, damageRange + 5, dealDamageToLayers, QueryTriggerInteraction.Collide);
+        var objectsToHit = Physics.OverlapSphere(explosionPosition, damageRange + 5, dealDamageToLayers, QueryTriggerInteraction.Collide);
+
+        playerHits.Clear();
+        enemyHits.Clear();
+
         foreach (var objectToHit in objectsToHit)
         {
-            Collider collider = null;
-            Hit hit = null;
+            var closestPoint = objectToHit.ClosestPoint(explosionPosition);
+            var distance = Vector3.Distance(explosionPosition, closestPoint);
+            var angle = 0f;
 
-            if (objectToHit.gameObject.layer == playersLayer && objectToHit.GetComponent<PlayerControllerB>() is { } hitPlayer)
+            if (!forward.Equals(default) && angle != 0 && distance > ignoreAngleRange)
+            {
+                angle = Vector3.Angle(forward, closestPoint - explosionPosition);
+                if (angle > angleLimit)
+                {
+                    BlackMesaInterior.Logger.LogDebug($"Explosion target {objectToHit} is outside the explosion angle limit");
+                    continue;
+                }
+            }
+
+            if (Physics.Linecast(explosionPosition, closestPoint, out _, 1 << roomLayer, QueryTriggerInteraction.Ignore))
+            {
+                BlackMesaInterior.Logger.LogDebug($"Explosion target {objectToHit} blocked by collision");
+                continue;
+            }
+
+            var layer = objectToHit.gameObject.layer;
+            BlackMesaInterior.Logger.LogDebug($"Explosion trying to hit {objectToHit} on layer {layer} with distance {distance} and angle {angle} (damage {damageRange}, kill {killRange})");
+
+            if (layer == playersLayer && objectToHit.TryGetComponent(out PlayerControllerB hitPlayer))
             {
                 if (!hitPlayer.IsOwner)
                     continue;
 
-                collider = hitPlayer.GetComponent<CharacterController>();
-                hit = distance =>
-                {
-                    if (distance < killRange)
-                    {
-                        Vector3 bodyVelocity = Vector3.Normalize(hitPlayer.gameplayCamera.transform.position - explosionPosition) * 80f / Vector3.Distance(hitPlayer.gameplayCamera.transform.position, explosionPosition);
-                        hitPlayer.KillPlayer(bodyVelocity, spawnBody: true, CauseOfDeath.Blast);
-                    }
-                    else if (distance < damageRange)
-                    {
-                        Vector3 bodyVelocity = Vector3.Normalize(hitPlayer.gameplayCamera.transform.position - explosionPosition) * 80f / Vector3.Distance(hitPlayer.gameplayCamera.transform.position, explosionPosition);
-                        hitPlayer.DamagePlayer(nonLethalDamage, hasDamageSFX: true, callRPC: true, CauseOfDeath.Blast, 0, fallDamage: false, bodyVelocity);
-                    }
-                };
+                if (distance <= killRange)
+                    playerHits[hitPlayer].RegisterHit(-1);
+                else if (distance <= damageRange)
+                    playerHits[hitPlayer].RegisterHit(nonLethalDamage);
             }
-            else if (objectToHit.gameObject.layer == enemiesLayer && objectToHit.GetComponent<EnemyAICollisionDetect>() is { } hitEnemyCollider)
+            else if (layer == enemiesLayer && objectToHit.TryGetComponent(out EnemyAICollisionDetect hitEnemyCollider))
             {
-                var hitEnemy = hitEnemyCollider.mainScript;
-                if (!hitEnemy.IsOwner)
+                if (!hitEnemyCollider.mainScript.IsOwner)
                     continue;
-
-                collider = hitEnemyCollider.GetComponent<Collider>();
-                hit = distance =>
-                {
-                    if (distance < damageRange * 0.75f)
-                    {
-                        hitEnemyCollider.mainScript.HitEnemyOnLocalClient(6);
-                        hitEnemyCollider.mainScript.HitFromExplosion(distance);
-                    }
-                };
+                if (distance < damageRange * 0.75f)
+                    enemyHits[hitEnemyCollider.mainScript].RegisterHit(enemyDamage, distance);
             }
-            else if (objectToHit.gameObject.layer == mapHazardsLayer && objectToHit.GetComponent<Landmine>() is { IsOwner: true } landmine)
+            else if (layer == mapHazardsLayer && objectToHit.TryGetComponent(out Landmine hitLandmine) && hitLandmine.IsOwner)
             {
-                collider = landmine.GetComponent<Collider>();
-                hit = distance =>
-                {
-                    if (distance < damageRange)
-                    {
-                        landmine.StartCoroutine(landmine.TriggerOtherMineDelayed(landmine));
-                    }
-                };
+                if (distance < damageRange)
+                    hitLandmine.StartCoroutine(hitLandmine.TriggerOtherMineDelayed(hitLandmine));
             }
-
-            if (collider == null)
-                continue;
-
-            var closestPoint = collider.ClosestPoint(explosionPosition);
-            if (Physics.Linecast(explosionPosition, closestPoint, out _, 1 << roomLayer, QueryTriggerInteraction.Ignore))
-                continue;
-
-            var distance = Vector3.Distance(explosionPosition, closestPoint);
-            hit(distance);
+            else if (objectToHit.TryGetComponent(out IHittable hittable))
+            {
+                hittable.Hit(enemyDamage, Vector3.Normalize(closestPoint - explosionPosition));
+            }
         }
+
+        foreach (var (player, hit) in playerHits)
+            hit.DoHit(explosionPosition, player);
+        foreach (var (enemy, hit) in enemyHits)
+            hit.DoHit(explosionPosition, enemy);
 
         objectsToHit = Physics.OverlapSphere(explosionPosition, 10, ~(1 << collidersLayer));
         foreach (var objectToHit in objectsToHit)

@@ -130,7 +130,7 @@ namespace BlackMesa.Components
                 return;
             hasExplodedOnClient = true;
 
-            BetterExplosion.SpawnExplosion(transform.position, killRadius, hurtRadius, 90);
+            BetterExplosion.SpawnExplosion(transform.position, killRadius, hurtRadius, 90, forward: -transform.up, angleLimit: 15);
 
             gameObject.SetActive(false);
             Destroy(terminalObject);
