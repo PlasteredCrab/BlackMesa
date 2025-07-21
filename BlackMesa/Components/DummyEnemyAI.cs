@@ -65,5 +65,6 @@ public sealed class DummyEnemyAI : EnemyAI
 
     public override void OnDestroy()
     {
+        RoundManager.Instance.SpawnedEnemies.Remove(this);
     }
 }
