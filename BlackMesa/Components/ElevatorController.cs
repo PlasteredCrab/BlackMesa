@@ -130,7 +130,7 @@ public class ElevatorController : NetworkBehaviour, IElevator
         {
             var volumeDeltaSign = doorsOpen ? -1 : 1;
             var volume = jingleSource.volume;
-            volume += volumeDeltaSign * Time.deltaTime / jingleFadeTime / jingleVolume;
+            volume += volumeDeltaSign * Time.deltaTime / jingleFadeTime * jingleVolume;
 
             jingleSource.volume = Mathf.Clamp(volume, 0, jingleVolume);
 
