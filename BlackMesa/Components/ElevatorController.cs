@@ -39,6 +39,11 @@ public class ElevatorController : NetworkBehaviour, IElevator
     private ElevatorFloor bottomFloor;
     private ElevatorFloor topFloor;
 
+    private void Start()
+    {
+        jingleSource.volume = 0;
+    }
+
     private void CreateFloors()
     {
         if (bottomFloor != null && topFloor != null)
