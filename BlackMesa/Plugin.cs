@@ -7,6 +7,7 @@ using DunGen;
 using DunGen.Graph;
 using HarmonyLib;
 using LethalLevelLoader;
+using PathfindingLib;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,6 +23,7 @@ namespace BlackMesa
 
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("imabatby.lethallevelloader")]
+    [BepInDependency(PathfindingLibPlugin.PluginGUID, "2.0.0")]
     public class BlackMesaInterior : BaseUnityPlugin
     {
         public const string GUID = "Plastered_Crab.BlackMesaInterior";
@@ -149,6 +151,8 @@ namespace BlackMesa
             #region Register props
 
             const string props = $"{prefabs}/Props";
+            InitializeNetworkBehaviour(typeof(ElevatorController));
+            RegisterNetworkPrefab($"{props}/OfficeElevator/OfficeElevator.prefab");
 
             InitializeNetworkBehaviour(typeof(HandheldTVCamera));
             RegisterNetworkPrefab($"{props}/HandheldTV.prefab");
