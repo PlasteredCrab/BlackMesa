@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using GameNetcodeStuff;
 using UnityEngine;
 
@@ -61,16 +62,21 @@ internal static class BetterExplosion
     private static readonly SequentialElementMap<PlayerControllerB, PlayerHit> playerHits = new(() => new PlayerHit(), player => (int)player.playerClientId, 4);
     private static readonly SequentialElementMap<EnemyAI, EnemyHit> enemyHits = new(() => new EnemyHit(), enemy => enemy.thisEnemyIndex, 4);
 
-    public static void SpawnExplosion(Vector3 explosionPosition, float killRange, float damageRange, int nonLethalDamage, Vector3 forward = default, float angleLimit = 0, float ignoreAngleRange = 2)
+    public static int GetEnemyDamage(int nonLethalDamage)
     {
-        const int playersLayer = 3;
-        const int roomLayer = 8;
-        const int collidersLayer = 11;
-        const int enemiesLayer = 19;
-        const int mapHazardsLayer = 21;
-        const int dealDamageToLayers = (1 << playersLayer) | (1 << enemiesLayer) | (1 << mapHazardsLayer);
+        return (nonLethalDamage + 10) / 20;
+    }
 
-        int enemyDamage = (nonLethalDamage + 10) / 20;
+    const int playersLayer = 3;
+    const int roomLayer = 8;
+    const int collidersLayer = 11;
+    const int enemiesLayer = 19;
+    const int mapHazardsLayer = 21;
+    const int dealDamageToLayers = (1 << playersLayer) | (1 << enemiesLayer) | (1 << mapHazardsLayer);
+
+    public static void SpawnExplosion(Vector3 explosionPosition, float killRange, float damageRange, int nonLethalDamage)
+    {
+        int enemyDamage = GetEnemyDamage(nonLethalDamage);
 
         GameObject explosionPrefab = Object.Instantiate(StartOfRound.Instance.explosionPrefab, explosionPosition, Quaternion.Euler(-90f, 0f, 0f));
         explosionPrefab.SetActive(value: true);
@@ -87,17 +93,6 @@ internal static class BetterExplosion
         {
             var closestPoint = objectToHit.ClosestPoint(explosionPosition);
             var distance = Vector3.Distance(explosionPosition, closestPoint);
-            var angle = 0f;
-
-            if (!forward.Equals(default) && angle != 0 && distance > ignoreAngleRange)
-            {
-                angle = Vector3.Angle(forward, closestPoint - explosionPosition);
-                if (angle > angleLimit)
-                {
-                    BlackMesaInterior.Logger.LogDebug($"Explosion target {objectToHit} is outside the explosion angle limit");
-                    continue;
-                }
-            }
 
             if (Physics.Linecast(explosionPosition, closestPoint, out _, 1 << roomLayer, QueryTriggerInteraction.Ignore))
             {
@@ -106,7 +101,7 @@ internal static class BetterExplosion
             }
 
             var layer = objectToHit.gameObject.layer;
-            BlackMesaInterior.Logger.LogDebug($"Explosion trying to hit {objectToHit} on layer {layer} with distance {distance} and angle {angle} (damage {damageRange}, kill {killRange})");
+            BlackMesaInterior.Logger.LogDebug($"Explosion trying to hit {objectToHit} on layer {layer} with distance {distance} (damage {damageRange}, kill {killRange})");
 
             if (layer == playersLayer && objectToHit.TryGetComponent(out PlayerControllerB hitPlayer))
             {
@@ -146,6 +141,46 @@ internal static class BetterExplosion
         {
             if (objectToHit.TryGetComponent<Rigidbody>(out var rigidBody))
                 rigidBody.AddExplosionForce(70, explosionPosition, 10);
+        }
+    }
+
+    public static void DeadlySphereCastExplosion(Vector3 position, Vector3 direction, float radius, float range, int enemyDamage)
+    {
+        const int playersLayer = 3;
+        const int roomLayer = 8;
+        const int enemiesLayer = 19;
+        const int dealDamageToLayers = (1 << playersLayer) | (1 << enemiesLayer);
+
+        var ray = new Ray(position, direction);
+        var hits = Physics.SphereCastAll(ray, radius, range, dealDamageToLayers, QueryTriggerInteraction.Ignore);
+
+        var hitEnemies = new Dictionary<EnemyAI, float>();
+
+        foreach (var hit in hits)
+        {
+            if (Physics.Linecast(position, hit.point, out _, 1 << roomLayer, QueryTriggerInteraction.Ignore))
+                continue;
+
+            if (hit.collider.TryGetComponent(out PlayerControllerB player))
+            {
+                if (!player.IsOwner)
+                    continue;
+                player.KillPlayer(direction, spawnBody: true, CauseOfDeath.Blast);
+            }
+            else if (hit.collider.TryGetComponent(out EnemyAICollisionDetect enemyCollider))
+            {
+                if (!enemyCollider.mainScript.IsOwner)
+                    continue;
+                if (hitEnemies.TryGetValue(enemyCollider.mainScript, out var hitDistance) && hit.distance > hitDistance)
+                    continue;
+                hitEnemies[enemyCollider.mainScript] = hit.distance;
+            }
+        }
+
+        foreach (var (enemy, distance) in hitEnemies)
+        {
+            enemy.HitEnemy(enemyDamage);
+            enemy.HitFromExplosion(distance);
         }
     }
 }

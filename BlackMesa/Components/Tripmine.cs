@@ -20,6 +20,9 @@ namespace BlackMesa.Components
 
         public float killRadius;
         public float hurtRadius;
+        public int nonLethalDamage;
+        public float sphereCastRange;
+        public float sphereCastRadius;
 
         private bool hasExplodedOnClient = false;
 
@@ -130,7 +133,10 @@ namespace BlackMesa.Components
                 return;
             hasExplodedOnClient = true;
 
-            BetterExplosion.SpawnExplosion(transform.position, killRadius, hurtRadius, 90, forward: -transform.up, angleLimit: 15);
+            var position = transform.position;
+            var direction = -transform.up;
+            BetterExplosion.SpawnExplosion(position, killRadius, hurtRadius, nonLethalDamage);
+            BetterExplosion.DeadlySphereCastExplosion(position, direction, sphereCastRadius, sphereCastRange, BetterExplosion.GetEnemyDamage(nonLethalDamage));
 
             gameObject.SetActive(false);
             Destroy(terminalObject);
