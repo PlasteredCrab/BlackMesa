@@ -42,6 +42,8 @@ public class ElevatorController : NetworkBehaviour, IElevator
     private void Start()
     {
         jingleSource.volume = 0;
+        jingleSource.Play();
+        jingleSource.Pause();
     }
 
     private void CreateFloors()
@@ -89,7 +91,7 @@ public class ElevatorController : NetworkBehaviour, IElevator
         doorsOpen = false;
         targetFloor = position;
 
-        jingleSource.Play();
+        jingleSource.UnPause();
     }
 
     public void SetDoorsOpen()
@@ -135,7 +137,7 @@ public class ElevatorController : NetworkBehaviour, IElevator
             jingleSource.volume = Mathf.Clamp(volume, 0, jingleVolume);
 
             if (jingleSource.volume <= 0)
-                jingleSource.Stop();
+                jingleSource.Pause();
         }
     }
 
