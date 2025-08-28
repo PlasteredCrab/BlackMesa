@@ -35,7 +35,10 @@ namespace BlackMesa
         private List<Camera> allControlledCameras = [];
         private List<Bounds> allControlledCameraScreenBounds = [];
         private List<Renderer[]> allControlledCameraScreenRenderers = [];
+        private List<bool> allControlledCamerasShouldRenderFlags = [];
+
         private int nextCameraToRender = 0;
+        private float cameraRenderCountRemainder = 0f;
 
         private HashSet<Camera> nightVisionCameraSet = [];
         private List<Light> nightVisionLights = [];
@@ -54,6 +57,7 @@ namespace BlackMesa
             allControlledCameras.Add(nightVisionCamera.Camera);
             allControlledCameraScreenBounds.Add(screenBounds);
             allControlledCameraScreenRenderers.Add(screenRenderers);
+            allControlledCamerasShouldRenderFlags.Add(false);
 
             var hdrpCamera = nightVisionCamera.Camera.GetComponent<HDAdditionalCameraData>();
             hdrpCamera.hasPersistentHistory = true;
@@ -184,21 +188,35 @@ namespace BlackMesa
 
             allOtherCameraFrustumsUpdated = false;
 
-            foreach (var camera in allControlledCameras)
+            var camCount = allControlledCameras.Count;
+            for (var i = 0; i < camCount; i++)
             {
+                var camera = allControlledCameras[i];
                 if (camera == null)
                     continue;
                 camera.enabled = false;
+                allControlledCamerasShouldRenderFlags[i] = false;
             }
 
-            var stopIndex = (nextCameraToRender + allControlledCameras.Count - 1) % allControlledCameras.Count;
-            var camerasRendered = 0;
-            while (camerasRendered < camerasToRenderPerFrame)
+            var activeCamCount = 0;
+            for (var i = 0; i < camCount; i++)
             {
-                if (ShouldRenderCamera(nextCameraToRender))
+                if (!ShouldRenderCamera(i))
+                    continue;
+                allControlledCamerasShouldRenderFlags[i] = true;
+                activeCamCount++;
+            }
+
+            var renderCountIncrement = (float)camerasToRenderPerFrame * activeCamCount / camCount;
+            cameraRenderCountRemainder += renderCountIncrement;
+
+            var stopIndex = (nextCameraToRender + allControlledCameras.Count - 1) % allControlledCameras.Count;
+            while (cameraRenderCountRemainder >= 0)
+            {
+                if (allControlledCamerasShouldRenderFlags[nextCameraToRender])
                 {
                     allControlledCameras[nextCameraToRender].enabled = true;
-                    camerasRendered++;
+                    cameraRenderCountRemainder--;
                 }
                 nextCameraToRender = (nextCameraToRender + 1) % allControlledCameras.Count;
                 if (nextCameraToRender == stopIndex)
