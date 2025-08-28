@@ -148,6 +148,35 @@ namespace BlackMesa
             return false;
         }
 
+        private bool ShouldRenderCamera(int cameraIndex)
+        {
+            if (cameraIndex < 0 || cameraIndex >= allControlledCameras.Count)
+                return false;
+
+            var camera = allControlledCameras[cameraIndex];
+
+            if (camera == null)
+                return false;
+            if (!camera.gameObject.activeInHierarchy)
+                return false;
+
+            var bounds = allControlledCameraScreenBounds[cameraIndex];
+            GetCameraFrustums();
+            if (IsBoundingBoxVisibleOnOtherCameras(bounds, ActiveTerminalDistanceSqr))
+                return true;
+
+            var renderers = allControlledCameraScreenRenderers[cameraIndex];
+            foreach (var renderer in renderers)
+            {
+                if (!renderer.isVisible)
+                    continue;
+                if (IsBoundingBoxVisibleOnOtherCameras(renderer.bounds, ActiveHandheldDistanceSqr))
+                    return true;
+            }
+
+            return false;
+        }
+
         private void LateUpdate()
         {
             if (allControlledCameras.Count == 0)
@@ -198,35 +227,6 @@ namespace BlackMesa
 
             // Allow CullFactory to be aware that these will likely be visible during the render pass.
             SetNightVisionVisible(true);
-        }
-
-        private bool ShouldRenderCamera(int cameraIndex)
-        {
-            if (cameraIndex < 0 || cameraIndex >= allControlledCameras.Count)
-                return false;
-
-            var camera = allControlledCameras[cameraIndex];
-
-            if (camera == null)
-                return false;
-            if (!camera.gameObject.activeInHierarchy)
-                return false;
-
-            var bounds = allControlledCameraScreenBounds[cameraIndex];
-            GetCameraFrustums();
-            if (IsBoundingBoxVisibleOnOtherCameras(bounds, ActiveTerminalDistanceSqr))
-                return true;
-
-            var renderers = allControlledCameraScreenRenderers[cameraIndex];
-            foreach (var renderer in renderers)
-            {
-                if (!renderer.isVisible)
-                    continue;
-                if (IsBoundingBoxVisibleOnOtherCameras(renderer.bounds, ActiveHandheldDistanceSqr))
-                    return true;
-            }
-
-            return false;
         }
 
         public void UpdateVisibleLights(ScriptableRenderContext _, Camera camera)
