@@ -231,16 +231,8 @@ namespace BlackMesa
                 if (currentPlayer.spectatedPlayerScript != null)
                     currentPlayer = currentPlayer.spectatedPlayerScript;
                 var heldItem = currentPlayer.currentlyHeldObjectServer;
-
-                foreach (var handheld in handheldTVCameras)
-                {
-                    if (handheld == null || handheld.Camera == null)
-                        continue;
-                    if (handheld != heldItem)
-                        continue;
+                if (heldItem is HandheldTVCamera handheld && handheld.Camera != null)
                     handheld.Camera.enabled = true;
-                    break;
-                }
             }
 
             // Allow CullFactory to be aware that these will likely be visible during the render pass.
