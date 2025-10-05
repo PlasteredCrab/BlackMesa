@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
         <AssemblyName>BlackMesa</AssemblyName>
@@ -7,14 +7,12 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <NoWarn>0436;0649</NoWarn>
+        <DebugType>embedded</DebugType>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-      <DebugType>embedded</DebugType>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-      <DebugType>embedded</DebugType>
+    <PropertyGroup Condition="'$(Configuration)' == 'Editor'">
+        <BuildForEditor>True</BuildForEditor>
+        <DefineConstants>BUILD_FOR_EDITOR</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>
@@ -29,8 +27,8 @@
         <PackageReference Include="Zaggy1024-PathfindingLib" Version="2.*" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-        <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+    <ItemGroup Condition="'$(BuildForEditor)' != 'True'">
+        <PackageReference Include="DaXcess-LethalCompanyVR" Version="1.4.0" Publicize="true" />
     </ItemGroup>
 
     <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">

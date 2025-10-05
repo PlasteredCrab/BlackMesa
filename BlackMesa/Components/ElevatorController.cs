@@ -1,4 +1,5 @@
 using System;
+using BlackMesa.Compatibility;
 using PathfindingLib.API.SmartPathfinding;
 using Unity.Netcode;
 using UnityEngine;
@@ -33,6 +34,8 @@ public class ElevatorController : NetworkBehaviour, IElevator
 
     public Collider insideCollider;
 
+    public GameObject[] vrButtons;
+
     internal Position targetFloor = Position.Bottom;
     internal bool doorsOpen = true;
 
@@ -44,6 +47,8 @@ public class ElevatorController : NetworkBehaviour, IElevator
         jingleSource.volume = 0;
         jingleSource.Play();
         jingleSource.Pause();
+
+        LCVRCompatibility.AddElevatorButtonInteractions(vrButtons);
     }
 
     private void CreateFloors()
