@@ -20,7 +20,7 @@
         <PackageReference Include="BepInEx.Core" Version="5.*" />
         <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
-        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="64.0.0-ngd.0" Private="False" Publicize="true" />
+        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="73.0.0-ngd.0" Private="False" Publicize="true" />
         <PackageReference Include="Unity3D.SDK" Version="2021.1.14.1" IncludeAssets="compile" />
         <PackageReference Include="IAmBatby-LethalLevelLoader" Version="1.3.10" />
         <PackageReference Include="Alice-DungeonGenerationPlus" Version="1.*" />
@@ -31,7 +31,13 @@
         <PackageReference Include="DaXcess-LethalCompanyVR" Version="1.4.0" Publicize="true" />
     </ItemGroup>
 
-    <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">
-        <Exec Command="netcode-patch -uv 2022.3.9 -nv 1.6.0 -tv 1.0.0 &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
-    </Target>
+    <Sdk Name="Evaisa.NetcodePatcher.MSBuild" Version="4.4.2" />
+    <PropertyGroup>
+        <NetcodePatcherUnityVersion>2022.3.62</NetcodePatcherUnityVersion>
+        <NetcodePatcherNetcodeVersion>1.12.0</NetcodePatcherNetcodeVersion>
+        <NetcodePatcherTransportVersion>1.0.0</NetcodePatcherTransportVersion>
+    </PropertyGroup>
+    <ItemGroup>
+        <NetcodePatch Include="$(TargetPath)" />
+    </ItemGroup>
 </Project>

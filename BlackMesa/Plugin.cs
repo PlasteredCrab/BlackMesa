@@ -139,11 +139,8 @@ namespace BlackMesa
 
             const string hazards = $"{prefabs}/Hazards";
 
-            InitializeNetworkBehaviour(typeof(Barnacle));
-            InitializeNetworkBehaviour(typeof(BarnacleSounds));
             RegisterNetworkPrefab($"{hazards}/Barnacle/Barnacle.prefab");
 
-            InitializeNetworkBehaviour(typeof(Tripmine));
             RegisterNetworkPrefab($"{hazards}/Laser Tripmine/Tripmine.prefab");
 
             #endregion
@@ -151,16 +148,11 @@ namespace BlackMesa
             #region Register props
 
             const string props = $"{prefabs}/Props";
-            InitializeNetworkBehaviour(typeof(ElevatorController));
             RegisterNetworkPrefab($"{props}/OfficeElevator/OfficeElevator.prefab");
 
-            InitializeNetworkBehaviour(typeof(HandheldTVCamera));
             RegisterNetworkPrefab($"{props}/HandheldTV.prefab");
 
-            InitializeNetworkBehaviour(typeof(StationBase));
-            InitializeNetworkBehaviour(typeof(HealingStation));
             RegisterNetworkPrefab($"{props}/Healing Station.prefab");
-            InitializeNetworkBehaviour(typeof(ChargingStation));
             RegisterNetworkPrefab($"{props}/HEV Station.prefab");
 
             #endregion
@@ -189,19 +181,6 @@ namespace BlackMesa
         private static T TryToLoadAssetDirectlyInEditor<T>(string path) where T : UnityEngine.Object
         {
             return AssetDatabase.LoadAssetAtPath<T>(path);
-        }
-
-        private static void InitializeNetworkBehaviour(Type type)
-        {
-            // Call the RPC initializer methods to register the RPC handlers
-            var initializer = type.GetMethod("InitializeRPCS_" + type.Name, BindingFlags.Static | BindingFlags.NonPublic);
-            if (initializer == null)
-            {
-                Logger.LogError($"{type} does not have a static RPC initializer method.");
-                return;
-            }
-
-            initializer.Invoke(null, null);
         }
 
         private static void RegisterNetworkPrefab(string path)
