@@ -1,9 +1,10 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace BlackMesa.Components;
 
-public class ElevatorInsideButton : MonoBehaviour
+public class ElevatorInsideButton : NetworkBehaviour
 {
     public ElevatorController controller;
     public AudioSource audioSource;
@@ -12,6 +13,24 @@ public class ElevatorInsideButton : MonoBehaviour
     public AudioClip disabledSound;
 
     public void PushButton()
+    {
+        PushButtonOnClient();
+        PushButtonServerRpc(StartOfRound.Instance.localPlayerController.actualClientId);
+    }
+
+    [Rpc(SendTo.Server, RequireOwnership = false)]
+    private void PushButtonServerRpc(ulong sendingClientID)
+    {
+        PushButtonClientRpc(RpcTarget.Not(sendingClientID, RpcTargetUse.Temp));
+    }
+
+    [Rpc(SendTo.SpecifiedInParams)]
+    private void PushButtonClientRpc(RpcParams rpcParams)
+    {
+        PushButtonOnClient();
+    }
+
+    private void PushButtonOnClient()
     {
         if (!controller.doorsOpen)
         {
