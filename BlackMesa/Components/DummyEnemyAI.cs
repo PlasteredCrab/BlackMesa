@@ -9,7 +9,7 @@ public sealed class DummyEnemyAI : EnemyAI
 {
     private IDumbEnemy enemy;
 
-    private void Awake()
+    public override void Awake()
     {
         enemy = GetComponent<IDumbEnemy>();
         thisNetworkObject = NetworkObject;
@@ -55,7 +55,7 @@ public sealed class DummyEnemyAI : EnemyAI
         enemy.Kill(destroy);
     }
 
-    public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet = false)
+    public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet = false, bool tamperWithMeshes = false)
     {
     }
 
