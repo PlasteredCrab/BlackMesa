@@ -10,7 +10,6 @@ internal static class PatchMenuManager
     [HarmonyPatch(nameof(MenuManager.Start))]
     private static void StartPostfix()
     {
-        BlackMesaInterior.FixAudioSources();
         LightSwitcher.CacheVanillaLightSounds();
     }
 }

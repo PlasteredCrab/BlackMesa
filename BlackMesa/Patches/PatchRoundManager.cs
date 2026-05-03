@@ -11,7 +11,7 @@ namespace BlackMesa.Patches
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SetLevelObjectVariables))]
         private static void SetLevelObjectVariablesPostfix(RoundManager __instance)
         {
-            if (__instance.dungeonGenerator.Generator.DungeonFlow == BlackMesaInterior.BlackMesaFlow)
+            if (BlackMesaInterior.IsBlackMesaInterior(__instance.dungeonGenerator.Generator.DungeonFlow))
             {
                 BlackMesaInterior.BatchAllTileModels(__instance.dungeonGenerator.Generator.CurrentDungeon);
 
@@ -24,7 +24,7 @@ namespace BlackMesa.Patches
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnSyncedProps))]
         private static void SpawnSyncedPropsPostfix(RoundManager __instance)
         {
-            if (__instance.dungeonGenerator?.Generator.DungeonFlow != BlackMesaInterior.BlackMesaFlow)
+            if (BlackMesaInterior.IsBlackMesaInterior(__instance.dungeonGenerator?.Generator.DungeonFlow))
                 return;
 
             var spawnedObjects = __instance.spawnedSyncedObjects;

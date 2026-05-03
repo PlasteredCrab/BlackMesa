@@ -1,4 +1,5 @@
-﻿using DunGen;
+﻿using System.Collections.Generic;
+using DunGen;
 using HarmonyLib;
 
 namespace BlackMesa.Patches;
@@ -6,27 +7,36 @@ namespace BlackMesa.Patches;
 [HarmonyPatch(typeof(DungeonGenerator))]
 internal class PatchDungeonGenerator
 {
-    private static int? originalGenerationAttempts;
+    private static Dictionary<DungeonGenerator, int> originalGenerationAttempts = [];
 
-    [HarmonyPrefix]
-    [HarmonyPatch(nameof(DungeonGenerator.Generate))]
-    private static void GenerateNewFloorPrefix(DungeonGenerator __instance)
+    private static bool IsGenerating(GenerationStatus status)
     {
-        if (__instance.DungeonFlow != BlackMesaInterior.BlackMesaFlow)
-            return;
-
-        originalGenerationAttempts = __instance.MaxAttemptCount;
-        __instance.MaxAttemptCount *= 5;
+        return status switch
+        {
+            GenerationStatus.NotStarted => false,
+            GenerationStatus.Complete => false,
+            GenerationStatus.Failed => false,
+            _ => true,
+        };
     }
 
-    [HarmonyPostfix]
-    [HarmonyPatch(nameof(DungeonGenerator.Generate))]
-    private static void GenerateNewFloorPostfix(DungeonGenerator __instance)
+    [HarmonyPrefix]
+    [HarmonyPatch(nameof(DungeonGenerator.ChangeStatus))]
+    private static void GenerateNewFloorPrefix(DungeonGenerator __instance, GenerationStatus status)
     {
-        if (!originalGenerationAttempts.HasValue)
-            return;
+        if (IsGenerating(status))
+        {
+            if (originalGenerationAttempts.ContainsKey(__instance))
+                return;
+            if (!BlackMesaInterior.IsBlackMesaInterior(__instance.DungeonFlow))
+                return;
 
-        __instance.MaxAttemptCount = originalGenerationAttempts.Value;
-        originalGenerationAttempts = null;
+            originalGenerationAttempts[__instance] = __instance.MaxAttemptCount;
+            __instance.MaxAttemptCount *= 5;
+            return;
+        }
+
+        if (originalGenerationAttempts.Remove(__instance, out var attempts))
+            __instance.MaxAttemptCount = attempts;
     }
 }
