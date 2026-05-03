@@ -26,9 +26,9 @@ public class ConnectionRules : MonoBehaviour
         rule = null;
     }
 
-    private TileConnectionRule.ConnectionResult CanTilesConnect(Tile tileA, Tile tileB, Doorway doorwayA, Doorway doorwayB)
+    private TileConnectionRule.ConnectionResult CanTilesConnect(ProposedConnection connection)
     {
-        if (doorwayTagRuleLookup.TryGetValue(new DoorwayTagPair(doorwayA, doorwayB), out var result))
+        if (doorwayTagRuleLookup.TryGetValue(new DoorwayTagPair(connection.PreviousDoorway.DoorwayComponent, connection.NextDoorway.DoorwayComponent), out var result))
             return result;
 
         return TileConnectionRule.ConnectionResult.Passthrough;
