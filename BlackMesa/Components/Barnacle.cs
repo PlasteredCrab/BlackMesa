@@ -373,16 +373,17 @@ public class Barnacle : NetworkBehaviour, IDumbEnemy
         rigidBody.centerOfMass = localPosition;
     }
 
-    private static void RemoveItemFromPlayerInventory(PlayerControllerB player, int itemSlot)
+    private static void RemoveItemFromPlayerInventory(PlayerControllerB player, GrabbableObject item)
     {
-        var item = player.ItemSlots[itemSlot];
-        if (item == null)
-            return;
-
         player.SetSpecialGrabAnimationBool(setTrue: false, item);
         player.playerBodyAnimator.SetBool("cancelHolding", true);
 
-        HUDManager.Instance.itemSlotIcons[itemSlot].enabled = false;
+        var itemSlot = Array.IndexOf(player.ItemSlots, item);
+        if (itemSlot >= 0)
+            HUDManager.Instance.itemSlotIcons[itemSlot].enabled = false;
+        else if (player.ItemOnlySlot == item)
+            HUDManager.Instance.itemOnlySlotIcon.enabled = false;
+
         HUDManager.Instance.holdingTwoHandedItem.enabled = false;
 
         player.SetObjectAsNoLongerHeld(player.isInElevator, player.isInHangarShipRoom, Vector3.zero, item);
@@ -423,7 +424,7 @@ public class Barnacle : NetworkBehaviour, IDumbEnemy
             return;
 
         if (item.playerHeldBy is { } player)
-            RemoveItemFromPlayerInventory(player, player.currentItemSlot);
+            RemoveItemFromPlayerInventory(player, item);
 
         var itemParent = item.parentObject ?? item.transform;
         var itemCollider = item.GetComponent<Collider>();
