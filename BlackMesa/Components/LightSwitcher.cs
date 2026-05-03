@@ -15,8 +15,6 @@ public class LightSwitcher : MonoBehaviour
         public Material offMaterial;
     }
 
-    public static HashSet<LightSwitcher> lightSwitchers = [];
-
     private static AudioClip vanillaOnSound = null;
     private static AudioClip vanillaOffSound = null;
     private static AudioClip vanillaFlickerSound = null;
@@ -57,23 +55,13 @@ public class LightSwitcher : MonoBehaviour
         }
     }
 
-    private void OnEnable()
-    {
-        lightSwitchers.Add(this);
-    }
-
-    private void OnDisable()
-    {
-        lightSwitchers.Remove(this);
-    }
-
     internal void SwitchLight(bool on, bool sound)
     {
         foreach (var light in lights)
         {
             if (light == null)
                 continue;
-            light.enabled = on;
+            light.gameObject.SetActive(on);
         }
 
         foreach (var materialRef in materialReferences)

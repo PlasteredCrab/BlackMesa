@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using DunGen;
 using UnityEngine;
 
 namespace BlackMesa.Components;
@@ -39,14 +41,58 @@ public class LightController : MonoBehaviour
         instance = this;
     }
 
-    internal void PopulateLightGroups()
+    private void Start()
+    {
+        PopulateLightGroupsAfterDungeonGeneration();
+    }
+
+    private DungeonGenerator FindDungeonGenerator(out GameObject root)
+    {
+        var dungeon = GetComponentInParent<Tile>().Dungeon;
+        root = dungeon.gameObject;
+
+        var runtimeDungeons = FindObjectsByType<RuntimeDungeon>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (var runtimeDungeon in runtimeDungeons)
+        {
+            if (runtimeDungeon.Generator == null)
+                continue;
+            if (runtimeDungeon.Generator.CurrentDungeon == dungeon)
+            {
+                root = runtimeDungeon.Root;
+                return runtimeDungeon.Generator;
+            }
+        }
+
+        return null;
+    }
+
+    private void PopulateLightGroupsAfterDungeonGeneration()
+    {
+        var generator = FindDungeonGenerator(out var root);
+
+        if (generator == null || generator.Status == GenerationStatus.Complete)
+        {
+            PopulateLightGroups(root);
+            return;
+        }
+
+        generator.OnGenerationStatusChanged += (_, status) =>
+        {
+            if (status == GenerationStatus.Complete)
+                PopulateLightGroups(root);
+        };
+    }
+
+    private void PopulateLightGroups(GameObject root)
     {
         if (lightSwitcherGroups != null)
             return;
 
         random = new System.Random(StartOfRound.Instance.randomMapSeed);
 
-        var allLightSwitchers = LightSwitcher.lightSwitchers.OrderBy(s => s.GetInstanceID()).ToList();
+        var allLightSwitchers = new List<LightSwitcher>();
+        root.GetComponentsInChildren(allLightSwitchers);
+        allLightSwitchers.Sort((a, b) => a.GetInstanceID().CompareTo(b.GetInstanceID()));
         lightSwitcherGroups = new LightSwitcherGroup[groupCount];
 
         var lightsPerGroup = allLightSwitchers.Count / groupCount;
