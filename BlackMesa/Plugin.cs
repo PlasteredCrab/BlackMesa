@@ -58,7 +58,6 @@ namespace BlackMesa
 
             string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             Bundle = AssetBundle.LoadFromFile(Path.Combine(assemblyPath, "Assets", "blackmesascriptassets"));
-            Bundle.LoadAsset<DiffusionProfileMappings>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/Diffusion Profile Mappings.asset").Apply();
             GenerationRulesPrefab = Bundle.LoadAsset<GameObject>("Assets/LethalCompany/Mods/BlackMesaInterior/DunGen Stuff/GenerationRules.prefab");
         }
 

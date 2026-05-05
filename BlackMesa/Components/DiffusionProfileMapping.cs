@@ -3,14 +3,21 @@ using System.Diagnostics;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
-namespace BlackMesa.Scriptables;
+namespace BlackMesa.Components;
+
+[Serializable]
+public class DiffusionProfileMapping
+{
+    public Material material;
+    public string diffusionProfileName;
+}
 
 [CreateAssetMenu(menuName = "Black Mesa/Diffusion Profile Mappings")]
-public class DiffusionProfileMappings : ScriptableObject
+public class DiffusionProfileMappings : MonoBehaviour
 {
     public DiffusionProfileMapping[] mappings;
 
-    internal void Apply()
+    private void Start()
     {
         if (mappings == null)
         {
@@ -35,11 +42,4 @@ public class DiffusionProfileMappings : ScriptableObject
             }
         }
     }
-}
-
-[Serializable]
-public class DiffusionProfileMapping
-{
-    public Material material;
-    public string diffusionProfileName;
 }
