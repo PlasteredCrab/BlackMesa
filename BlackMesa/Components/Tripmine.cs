@@ -1,8 +1,10 @@
+using System;
+using System.Runtime.CompilerServices;
+using UnityEditor;
 using UnityEngine;
 using Unity.Netcode;
 using BlackMesa.Utilities;
 using GameNetcodeStuff;
-using System;
 
 namespace BlackMesa.Components
 {
@@ -18,6 +20,7 @@ namespace BlackMesa.Components
         public AudioClip deactivationClip;
         public AudioClip activationClip;
 
+        public float explosionOriginOffset;
         public float killRadius;
         public float hurtRadius;
         public int nonLethalDamage;
@@ -127,16 +130,29 @@ namespace BlackMesa.Components
             Explode();
         }
 
+        private struct ExplosionOrigin(Vector3 position, Vector3 direction)
+        {
+            public Vector3 position = position;
+            public Vector3 direction = direction;
+        }
+
+        private ExplosionOrigin GetExplosionOrigin()
+        {
+            var position = transform.position;
+            var direction = -transform.up;
+            position += direction * explosionOriginOffset;
+            return new ExplosionOrigin(position, direction);
+        }
+
         private void Explode()
         {
             if (hasExplodedOnClient)
                 return;
             hasExplodedOnClient = true;
 
-            var position = transform.position;
-            var direction = -transform.up;
-            BetterExplosion.SpawnExplosion(position, killRadius, hurtRadius, nonLethalDamage);
-            BetterExplosion.DeadlySphereCastExplosion(position, direction, sphereCastRadius, sphereCastRange, BetterExplosion.GetEnemyDamage(nonLethalDamage));
+            var origin = GetExplosionOrigin();
+            BetterExplosion.SpawnExplosion(origin.position, killRadius, hurtRadius, nonLethalDamage);
+            BetterExplosion.DeadlySphereCastExplosion(origin.position, origin.direction, sphereCastRadius, sphereCastRange, BetterExplosion.GetEnemyDamage(nonLethalDamage));
 
             gameObject.SetActive(false);
             Destroy(terminalObject);
@@ -184,10 +200,22 @@ namespace BlackMesa.Components
                 toggleAudio.PlayOneShot(deactivationClip);
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void OnDrawGizmosSelected()
         {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position, killRadius); // Example explosion radius
+            using (new Handles.DrawingScope())
+            {
+                var origin = GetExplosionOrigin();
+
+                Handles.color = Color.red;
+                Handles.DrawWireDisc(origin.position, transform.forward, killRadius);
+
+                var sphereCastEndpoint = origin.position - transform.up * sphereCastRange;
+                Handles.DrawWireArc(origin.position, transform.forward, transform.right, 180, sphereCastRadius);
+                Handles.DrawLine(origin.position - transform.right * sphereCastRadius, sphereCastEndpoint - transform.right * sphereCastRadius);
+                Handles.DrawLine(origin.position + transform.right * sphereCastRadius, sphereCastEndpoint + transform.right * sphereCastRadius);
+                Handles.DrawWireArc(sphereCastEndpoint, transform.forward, transform.right, -180, sphereCastRadius);
+            }
         }
     }
 }

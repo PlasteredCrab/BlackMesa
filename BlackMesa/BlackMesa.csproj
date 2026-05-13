@@ -23,6 +23,7 @@
         <PackageReference Include="LethalCompany.GameLibs.Steam" Version="81.0.0-ngd.0" Private="False" Publicize="true" />
         <PackageReference Include="Alice-DungeonGenerationPlus" Version="1.*" />
         <PackageReference Include="Zaggy1024-PathfindingLib" Version="2.*" />
+        <PackageReference Include="Unity3D.SDK" Version="2021.1.14.1" IncludeAssets="compile" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(BuildForEditor)' != 'True'">
