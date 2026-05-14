@@ -16,6 +16,8 @@ namespace BlackMesa.Components;
 [RequireComponent(typeof(Rigidbody))]
 public class InverseTeleporterTrigger : NetworkBehaviour
 {
+    private static readonly System.Random sfxRandomizer = new();
+
     [Header("Trigger")]
     [Min(0f)]
     public float retriggerCooldown = 1.5f;
@@ -24,11 +26,11 @@ public class InverseTeleporterTrigger : NetworkBehaviour
 
     [Header("Audio (Optional)")]
     public AudioSource teleportAudioSource;
-    public AudioClip teleporterBeamUpSFX;
+    public AudioClip[] teleporterBeamUpSFX = [];
 
     [Header("Arrival FX (Player Optional)")]
-    public ParticleSystem playerArrivalParticlePrefab;
-    public AudioClip playerArrivalSFX;
+    public ParticleSystem[] playerArrivalParticlePrefabs = [];
+    public AudioClip[] playerArrivalSFX = [];
     [Range(0f, 1f)]
     public float playerArrivalSFXVolume = 1f;
 
@@ -521,24 +523,18 @@ public class InverseTeleporterTrigger : NetworkBehaviour
 
     private void PlayPlayerArrivalFx(Vector3 position)
     {
-        if (playerArrivalParticlePrefab != null)
+        if (playerArrivalParticlePrefabs != null)
         {
-            ParticleSystem particles = Instantiate(playerArrivalParticlePrefab, position, Quaternion.identity);
-            particles.Play();
-
-            ParticleSystem.MainModule main = particles.main;
-            float lifetime = 3f;
-            if (!main.loop)
+            for (int i = 0; i < playerArrivalParticlePrefabs.Length; i++)
             {
-                lifetime = main.duration + main.startLifetime.constantMax + 0.25f;
+                SpawnAndPlayArrivalParticle(playerArrivalParticlePrefabs[i], position);
             }
-
-            Destroy(particles.gameObject, lifetime);
         }
 
-        if (playerArrivalSFX != null)
+        AudioClip sfx = GetRandomClip(playerArrivalSFX);
+        if (sfx != null)
         {
-            AudioSource.PlayClipAtPoint(playerArrivalSFX, position, playerArrivalSFXVolume);
+            AudioSource.PlayClipAtPoint(sfx, position, playerArrivalSFXVolume);
         }
     }
 
@@ -627,9 +623,10 @@ public class InverseTeleporterTrigger : NetworkBehaviour
 
     private AudioClip ResolveBeamSfx()
     {
-        if (teleporterBeamUpSFX != null)
+        AudioClip sfx = GetRandomClip(teleporterBeamUpSFX);
+        if (sfx != null)
         {
-            return teleporterBeamUpSFX;
+            return sfx;
         }
 
         ShipTeleporter teleporter = FindObjectOfType<ShipTeleporter>();
@@ -639,6 +636,69 @@ public class InverseTeleporterTrigger : NetworkBehaviour
         }
 
         return null;
+    }
+
+    private static AudioClip GetRandomClip(AudioClip[] clips)
+    {
+        if (clips == null || clips.Length == 0)
+        {
+            return null;
+        }
+
+        int nonNullCount = 0;
+        for (int i = 0; i < clips.Length; i++)
+        {
+            if (clips[i] != null)
+            {
+                nonNullCount++;
+            }
+        }
+
+        if (nonNullCount == 0)
+        {
+            return null;
+        }
+
+        int selectedNonNullIndex = sfxRandomizer.Next(nonNullCount);
+        int currentNonNullIndex = 0;
+
+        for (int i = 0; i < clips.Length; i++)
+        {
+            AudioClip clip = clips[i];
+            if (clip == null)
+            {
+                continue;
+            }
+
+            if (currentNonNullIndex == selectedNonNullIndex)
+            {
+                return clip;
+            }
+
+            currentNonNullIndex++;
+        }
+
+        return null;
+    }
+
+    private static void SpawnAndPlayArrivalParticle(ParticleSystem prefab, Vector3 position)
+    {
+        if (prefab == null)
+        {
+            return;
+        }
+
+        ParticleSystem particles = Instantiate(prefab, position, Quaternion.identity);
+        particles.Play();
+
+        ParticleSystem.MainModule main = particles.main;
+        float lifetime = 3f;
+        if (!main.loop)
+        {
+            lifetime = main.duration + main.startLifetime.constantMax + 0.25f;
+        }
+
+        Destroy(particles.gameObject, lifetime);
     }
 
     private void Log(string message)
