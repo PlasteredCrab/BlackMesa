@@ -1,25 +1,26 @@
 ﻿using BlackMesa.Interfaces;
 using GameNetcodeStuff;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace BlackMesa.Components;
 
 public sealed class DummyEnemyAI : EnemyAI
 {
-    private IDumbEnemy enemy;
+    public Object targetObject;
+
+    private IDumbEnemy target;
 
     public override void Awake()
     {
-        enemy = GetComponent<IDumbEnemy>();
         thisNetworkObject = NetworkObject;
-        agent = GetComponent<NavMeshAgent>();
         skinnedMeshRenderers = [];
         meshRenderers = [];
         overlapColliders = new Collider[1];
         allAINodes = [];
         path1 = new();
         enabled = false;
+
+        target = (IDumbEnemy)targetObject;
     }
 
     public override void Start()
@@ -28,14 +29,14 @@ public sealed class DummyEnemyAI : EnemyAI
 
     public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
     {
-        enemy.Hit(force, Vector3.zero);
+        target.Hit(force, Vector3.zero, playerWhoHit, playHitSFX, hitID);
     }
 
     public override void SetEnemyStunned(bool setToStunned, float setToStunTime = 1, PlayerControllerB setStunnedByPlayer = null)
     {
         if (!setToStunned)
             setToStunTime = 0;
-        enemy.Stun(setToStunTime);
+        target.Stun(setToStunTime);
     }
 
     public override void OnCollideWithPlayer(Collider other)
@@ -52,7 +53,7 @@ public sealed class DummyEnemyAI : EnemyAI
 
     public override void KillEnemy(bool destroy = false)
     {
-        enemy.Kill(destroy);
+        target.Kill(destroy);
     }
 
     public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet = false, bool tamperWithMeshes = false)
