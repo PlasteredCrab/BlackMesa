@@ -63,6 +63,8 @@ namespace BlackMesa
 
         internal static bool IsBlackMesaInterior(DungeonFlow flow)
         {
+            if (flow == null)
+                return false;
             return flow.name == "Black Mesa";
         }
 
