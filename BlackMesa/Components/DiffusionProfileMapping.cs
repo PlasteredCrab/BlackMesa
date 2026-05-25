@@ -8,8 +8,8 @@ namespace BlackMesa.Components;
 [Serializable]
 public class DiffusionProfileMapping
 {
-    public Material material;
     public string diffusionProfileName;
+    public Material[] materials;
 }
 
 [CreateAssetMenu(menuName = "Black Mesa/Diffusion Profile Mappings")]
@@ -37,8 +37,10 @@ public class DiffusionProfileMappings : MonoBehaviour
             for (var i = 0; i < mappings.Length; i++)
             {
                 var mapping = mappings[i];
-                if (mapping.diffusionProfileName == diffusionProfileSettings.name)
-                    mapping.material.SetFloat("_DiffusionProfileHash", hashAsFloat);
+                if (mapping.diffusionProfileName != diffusionProfileSettings.name)
+                    continue;
+                foreach (var material in mapping.materials)
+                    material.SetFloat("_DiffusionProfileHash", hashAsFloat);
             }
         }
     }
