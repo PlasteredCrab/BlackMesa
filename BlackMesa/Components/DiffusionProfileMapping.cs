@@ -12,7 +12,6 @@ public class DiffusionProfileMapping
     public Material[] materials;
 }
 
-[CreateAssetMenu(menuName = "Black Mesa/Diffusion Profile Mappings")]
 public class DiffusionProfileMappings : MonoBehaviour
 {
     public DiffusionProfileMapping[] mappings;
