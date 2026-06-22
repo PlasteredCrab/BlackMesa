@@ -7,6 +7,8 @@ public class FlashbangGrenadeItem : GrabbableObject
     [Header("Behavior")]
     public float fuseDuration = 2.25f;
     public GameObject explosionEffect;
+    [Space(3f)]
+    public float explodedValueMultiplier = 1f;
 
     [Header("Visuals")]
     public Animator itemAnimator;
@@ -117,6 +119,8 @@ public class FlashbangGrenadeItem : GrabbableObject
         Instantiate(explosionEffect, transform.position, Quaternion.identity, parent);
         itemAudio.PlayOneShot(explodeSFX);
         WalkieTalkie.TransmitOneShotAudio(itemAudio, explodeSFX);
+
+        SetScrapValue((int)(scrapValue * explodedValueMultiplier));
     }
 
     public Vector3 GetGrenadeThrowDestination()
