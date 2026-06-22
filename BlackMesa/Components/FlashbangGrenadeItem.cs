@@ -135,4 +135,20 @@ public class FlashbangGrenadeItem : GrabbableObject
             return grenadeHit.point + Vector3.up * 0.05f;
         return grenadeThrowRay.GetPoint(30f);
     }
+
+    public override int GetItemDataToSave()
+    {
+        return hasExploded ? 1 : 0;
+    }
+
+    public override void LoadItemSaveData(int saveData)
+    {
+        hasExploded = (saveData & 1) != 0;
+        if (hasExploded)
+        {
+            itemAnimator.SetTrigger("pullPin");
+            pinPulled = true;
+            itemUsedUp = true;
+        }
+    }
 }
